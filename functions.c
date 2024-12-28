@@ -1,4 +1,6 @@
 #include "raylib.h"
+#include "structs.h"
+#include "functions.h"
 
 void UpdateHitbox(struct ship* s) {		//ustala pozycję i wymiary hitbox'u
     s->hitbox.x = s->pos.x;
