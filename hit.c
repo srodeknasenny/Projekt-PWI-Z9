@@ -1,7 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "raylib.h"
+#include "hit_headers.h"
 
+/*
+hit_functions.c oraz hit_headers.h (później usunę ten komentarz, ale na razie wolę mieć zawartość w pogotowiu)
 #define WIDTH 550//szerokość ekranu
 #define HEIGHT 550//wysokość ekranu
 #define SPACE 10//przerwa między kafelkami
@@ -71,7 +74,9 @@ void recolour_square(struct real_cordinals* point, Color colour){
         DrawRectangle(point->x, point->y, SQUARE_SIZE, SQUARE_SIZE, colour);
         EndDrawing();
     }
-}
+}*/
+/*Ogólnie efekt działania funkcji z hit_functions.h ma być taki, że kafelki (które drukują się na ekranie),
+mają się zabarwiać na kolor magenta, gdy się na nie najedzie (jasnofioletowy). Inne informacje - lektura hit_headers.h*/
 int main(){
     //Przyjmuję, że przerw będzie 11 (dwie na zewnątrz kafelków i 9 między kafelkami)
     bool drawed = false;
