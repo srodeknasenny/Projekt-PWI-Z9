@@ -32,3 +32,4 @@ struct real_cordinals* colour_square(Color colour);/*koloruje aktualnie wskazywa
 na dany kolor i zwraca współrzędne lewego górnego rogu kafelka (niewykorzystana w hit.c)*/
 void recolour_square(struct real_cordinals* point, Color colour);/*koloruje kafelek o danych współrzędnych 
 lewego górnego rogu na dany kolor*/
+void check_shot(int enemyships[10][10], struct array_cordinals* point); //sprawdza, czy trafiliśmy w okręt wroga
