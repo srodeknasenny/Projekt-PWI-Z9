@@ -56,3 +56,9 @@ void recolour_square(struct real_cordinals* point, Color colour){
         EndDrawing();
     }
 }
+
+void check_shot(int enemyships[10][10], struct array_cordinals* point){
+    if(point==NULL || enemyships[point->y][point->x] > 1 || enemyships[point->y][point->x] < 0) return;
+    if(enemyships[point->y][point->x]==0) enemyships[point->y][point->x] = 2; //oznacza pudło
+    else enemyships[point->y][point->x] = 3;//oznacza trafienie (na razie w ogólności - później 3 może będzie oznaczało trafiony niezatopiony)
+}
