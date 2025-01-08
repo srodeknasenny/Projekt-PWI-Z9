@@ -2,6 +2,14 @@
 //#include "functions.c"
 #ifndef STRUCTS_H
 #define STRUCTS_H
+#define BOARD_SIZE 10
+#define TILE_SIZE 40
+typedef enum { //struct przechowujący stan gry
+    GAME_RUNNING,
+    GAME_PLAYER_WON,
+    GAME_AI_WON
+} GameState;
+
 typedef struct pair{
 	float x;
 	float y;
@@ -23,9 +31,14 @@ typedef struct ship{
 	void (*updateHitbox)(struct ship*);	//ustala wymiary hitbox'u
 	void (*updateShip)(bool* isDragging, struct ship*);	//aktualizuje pozycję i rotację obiektu; isDragging ma spwawdzać, czy jakiś statek nie jest już przeciągany
 }ship;
-typedef struct board	// temp tablica (nie wiem jeszcz jak dokladnie zamierzamy sprawdzac poprawnosc polozenia)
-{
-	ship* BOARD[10][10];
-}board;
+typedef struct {
+    ship *BOARD[BOARD_SIZE][BOARD_SIZE]; //plansza gracza
+    bool shots[BOARD_SIZE][BOARD_SIZE]; //strzały gracza
+} board;
+//struct z hit_headers.h
+struct array_cordinals{//współrzędne w sensie trafiania statku
+    int x;//od 0 do 9
+    int y;//od 0 do 9
+};
 
 #endif
