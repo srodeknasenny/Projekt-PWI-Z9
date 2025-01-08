@@ -156,7 +156,7 @@ board* initboard()
 			//else{break;}
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
-		{	shiptile temp = {begin.x,(begin.y-i)};
+		{	shiptile temp = {{begin.x,(begin.y-i)}, false};//struktura zagnieżdżona musi mieć {}
 			boardtab->BOARD[(unsigned int)begin.x][(unsigned int)begin.y-i]=curr_ship;
 			curr_ship->boardplace[i]=temp;
 		}
@@ -173,7 +173,7 @@ board* initboard()
 			//else{break;}
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
-		{	shiptile temp = {begin.x-i,(begin.y)};
+		{	shiptile temp = {{begin.x-i,(begin.y)}, false};
 			boardtab->BOARD[(unsigned int)begin.x-i][(unsigned int)begin.y]=curr_ship;
 			curr_ship->boardplace[i]=temp;
 		}
