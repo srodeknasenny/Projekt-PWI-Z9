@@ -68,19 +68,19 @@ void UpdateShip(bool* isDragging, struct ship* s)
 		free(statek->boardplace);
 		free(statek);
 	}
-	board* initboard()
+board* initboard()
+{
+   	board *newBoard = (board*)malloc(sizeof(board));
+   	for (int y = 0; y < BOARD_SIZE; y++)
 	{
-		board* boardtab=malloc(sizeof(board));
-		for (int i = 0; i < 10; i++)
+       	for (int x = 0; x < BOARD_SIZE; x++)
 		{
-			for (int k = 0; k < 10; k++)
-			{
-				boardtab->BOARD[i][k]=NULL;
-			}
-			
-		}
-		return boardtab;
-	};
+           	newBoard->BOARD[x][y] = NULL;
+           	newBoard->shots[x][y] = false;
+       	}
+   	}
+    return newBoard;
+}
 	void delboard(board* boardtab)
 	{
 		if(boardtab!=NULL){free(boardtab);}//nie zwolnie statkow gdyz musialbym sledzic czy dany statek nie zostal zwolniony wczesniej. Normalnie to od tego bylyby smart pointery ale jako ze to c to bedzie to problem osoby inicjujacej statek
@@ -193,14 +193,17 @@ void UpdateShip(bool* isDragging, struct ship* s)
 		}
 	}
 
-	void shoot(board* player,pair paira){//funkcja nie zwraca trafienia.
-		ship* curr_ship =player->BOARD[(unsigned int)paira.x][(unsigned int)paira.y];
-		if(curr_ship!=NULL)
-		{
-			beingshot(curr_ship,paira);
-		}
-	}
-
+void shoot(board *playerBoard, pair shot)
+{
+    int x = shot.x;
+    int y = shot.y;
+    playerBoard->shots[x][y] = true; //zapisuje strzał na planszy gracza
+    if (playerBoard->BOARD[x][y] != NULL)
+	{
+        ship *curr_ship = playerBoard->BOARD[x][y];
+		beingshot(curr_ship,shot);
+    }
+}
 	void printboard(board* boardA)//funkcja drukuje tablice gracza. Funkcja raczej testowa
 	{
 		for (int k = 0; k < 10; k++)
@@ -287,4 +290,261 @@ void UpdateShip(bool* isDragging, struct ship* s)
 		}
 	};
 ;
+struct array_cordinals* Get_array_cordinals(int offsetX, int offsetY) {
+    struct array_cordinals* cordinal = (struct array_cordinals*)malloc(sizeof(struct array_cordinals));
+    if (cordinal == NULL) return NULL;
 
+    int x = GetMouseX();
+    int y = GetMouseY();
+
+    x -= offsetX;
+    y -= offsetY;
+
+    x = x / TILE_SIZE;
+    y = y / TILE_SIZE;
+
+    if (x < 0 || x >= 9 || y < 0 || y >= 9)
+    {
+        free(cordinal);
+        return NULL;
+    }
+
+    cordinal->x = x;
+    cordinal->y = y;
+    return cordinal;
+};
+void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship **enemyShip) //basicowa funkcja resetujaca gre (pozniej trzeba wyrzucic stad playership i enemyship, zeby samo usuwalo - nikt nie bedzie tego recznie ustawial)
+{
+    delboard(*playerBoard);
+    delboard(*enemyBoard);
+    delship(*playerShip);
+    delship(*enemyShip);
+
+    *playerBoard = initboard();
+    *enemyBoard = initboard();
+	/*reczne dodawanie statkow, pozniej tego nie bedzie, bo zacznie sie funkcja z ustawianiem przez uzytkownika*/
+    *playerShip = initship(3);
+    *enemyShip = initship(3);
+
+    pair playerStart = {2, 2};
+    pair enemyStart = {4, 4};
+
+    placeStatek(*playerBoard, *playerShip, playerStart, 2);
+    placeStatek(*enemyBoard, *enemyShip, enemyStart, 3);
+};
+
+void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) {
+    for (int y = 0; y < BOARD_SIZE; y++) {
+        for (int x = 0; x < BOARD_SIZE; x++) {
+            Rectangle tile = {offsetX + x * TILE_SIZE, offsetY + y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
+
+            if (playerBoard->BOARD[x][y] == NULL) {
+                if (playerBoard->shots[x][y]) {
+                    DrawRectangle(tile.x, tile.y, tile.width, tile.height, LIGHTGRAY); // Color for missed shots
+                }
+                DrawRectangleLines(tile.x, tile.y, tile.width, tile.height, GRAY);
+            }
+            else {
+                ship *currShip = playerBoard->BOARD[x][y];
+                bool partShot = false;
+                for (int i = 0; i < currShip->type; i++) {
+                    if (currShip->boardplace[i].cords.x == x && currShip->boardplace[i].cords.y == y && currShip->boardplace[i].got_shot) {
+                        partShot = true;
+                        break;
+                    }
+                }
+
+                if (partShot) {
+                    DrawRectangle(tile.x, tile.y, tile.width, tile.height, RED);
+                }
+                else {
+                    Color color = (isEnemy) ? WHITE : BLUE;
+                    DrawRectangle(tile.x, tile.y, tile.width, tile.height, color);
+                }
+                DrawRectangleLines(tile.x, tile.y, tile.width, tile.height, DARKGRAY); // Border lines
+            }
+        }
+    }
+};
+pair AITurn(board *playerBoard) //losuje do skutku, dopóki nie trafi w puste pole (mogę później zoptymalizować losowanie, ale na razie wystarcza)
+{
+    while (true)
+    {
+        int x = GetRandomValue(0, BOARD_SIZE - 1);
+        int y = GetRandomValue(0, BOARD_SIZE - 1);
+        pair shot = {x, y};
+        if (!playerBoard->shots[x][y])
+        {
+            shoot(playerBoard, shot);
+            return shot;
+        }
+    }
+};
+bool CheckWinCondition(board *playerBoard) //czy wszystkie statki zostały zestrzelone
+{
+    for (int y = 0; y < BOARD_SIZE; y++)
+    {
+        for (int x = 0; x < BOARD_SIZE; x++)
+        {
+            if (playerBoard->BOARD[x][y] != NULL)
+            {
+                ship *currShip = playerBoard->BOARD[x][y];
+                for (int i = 0; i < currShip->type; i++)
+                {
+                    if (!currShip->boardplace[i].got_shot) return false; //fałsz, jeśli jakiś statek nie został zestrzelony
+                }
+            }
+        }
+    }
+    return true; //prawda, jeśli wszystkie statki zostały zestrzelone
+};
+void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip) //na razie biore po jednym statku, ale w wersji bardziej grywalnej bedzie ich tu z oczywistych powodow wiecej
+{
+    //być może ta część wypadałoby żeby była w #define, ale na razie napisałam tak
+    int playerOffsetX = 50;
+    int playerOffsetY = 100;
+    int enemyOffsetX = 500;
+    int enemyOffsetY = 100;
+
+    const int screenWidth = 2*BOARD_SIZE*TILE_SIZE + 3*playerOffsetX; //szerokość okna zależna od ustawień powyższych funkcji (offsetX, plasza_gracza, offsetX, plansza_enemy, offsetX)
+    const int screenHeight = BOARD_SIZE*TILE_SIZE + 2*playerOffsetY; //wysokość okna zależna od ustawień powyższych funkcji (offsetY, plansza_gracza, offsetY)
+
+    InitWindow(screenWidth, screenHeight, "The Statki Game");
+
+    bool playerTurn = true;
+    GameState gameState = GAME_RUNNING;
+    char message[128] = "";
+
+    while (!WindowShouldClose()) {
+        BeginDrawing();
+
+        if (IsKeyPressed(KEY_ESCAPE))
+        {
+            CloseWindow();
+            break;
+        }
+
+        ClearBackground(RAYWHITE);
+
+        if (gameState == GAME_RUNNING) {
+            DrawText("Twoja plansza", playerOffsetX, playerOffsetY - 30, 20, BLACK);
+            DrawBoard(playerBoard, playerOffsetX, playerOffsetY, false);
+
+            DrawText("Plansza przeciwnika", enemyOffsetX, enemyOffsetY - 30, 20, BLACK);
+            DrawBoard(enemyBoard, enemyOffsetX, enemyOffsetY, true);
+
+            DrawText(message, screenWidth / 2 - MeasureText(message, 20) / 2, screenHeight - 50, 20, DARKGRAY);
+
+            if (playerTurn) {
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    struct array_cordinals *cords = Get_array_cordinals(enemyOffsetX, enemyOffsetY);
+                    if(cords==NULL) break;
+                    int x = cords->x;
+                    int y = cords->y;
+
+                    if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+                        pair shot = {x, y};
+                        if (!enemyBoard->shots[x][y]) //jeśli pole puste lub niezestrzelone, to strzelaj
+                        {
+                            shoot(enemyBoard, shot);
+                            playerTurn = false;
+                            snprintf(message, sizeof(message), "Gracz strzelil w (%d, %d)", x, y);
+                            if(enemyBoard->BOARD[x][y]!=NULL)
+                            {
+                                ship *currShip = enemyBoard->BOARD[x][y];
+                                bool sunk = true;
+                                for (int i = 0; i < currShip->type; i++)
+                                {
+                                    if (!currShip->boardplace[i].got_shot)
+                                    {
+                                        sunk = false;
+                                        break;
+                                    }
+                                }
+                                if (sunk)
+                                {
+                                    snprintf(message, sizeof(message), "Gracz zatopil statek!");
+                                }
+                                playerTurn=true;
+                            }
+                        } 
+                        else 
+                        {
+                            snprintf(message, sizeof(message), "Strzelales juz tutaj!");
+                        }
+                    }
+                }
+            } else {
+                pair shot = AITurn(playerBoard);
+                snprintf(message, sizeof(message), "Przeciwnik strzela w (%d, %d)", ((int)shot.x)+1, ((int)shot.y)+1);
+                if(playerBoard->BOARD[(int)shot.x][(int)shot.y]!=NULL)
+                {
+                    ship *currShip = playerBoard->BOARD[(int)shot.x][(int)shot.y];
+                    bool sunk = true;
+                    for (int i = 0; i < currShip->type; i++)
+                    {
+                        if (!currShip->boardplace[i].got_shot)
+                        {
+                            sunk = false;
+                            break;
+                        }
+                    }
+                    if (sunk)
+                    {
+                        snprintf(message, sizeof(message), "Przeciwnik zatopil twoj statek!");
+                    }
+                    playerTurn=false;
+                }
+                else playerTurn = true;
+            }
+
+            // Check win conditions
+            if (CheckWinCondition(playerBoard)) {
+                gameState = GAME_AI_WON;
+            } else if (CheckWinCondition(enemyBoard)) {
+                gameState = GAME_PLAYER_WON;
+            }
+        } else {
+            if (gameState == GAME_PLAYER_WON) {
+                DrawText("Wygrywasz!", screenWidth / 2 - MeasureText("Wygrywasz!", 40) / 2, screenHeight / 2 - 20, 40, GREEN);
+            } else if (gameState == GAME_AI_WON) {
+                DrawText("Przegrywasz!", screenWidth / 2 - MeasureText("Przegrywasz!", 40) / 2, screenHeight / 2 - 20, 40, RED);
+            }
+
+            //tanio zrobiony playagainbutton - można poprawić jeśli ktoś ma ochotę
+            Rectangle playAgainButton = {screenWidth / 2 - 150, screenHeight / 2 + 50, 300, 50};
+			const char* buttonText = "Zagraj ponownie";
+			DrawRectangleRec(playAgainButton, LIGHTGRAY);
+
+			int textWidth = MeasureText(buttonText, 30);
+			int textHeight = 30;
+			
+			int textX = playAgainButton.x + (playAgainButton.width - textWidth) / 2;
+			int textY = playAgainButton.y + (playAgainButton.height - textHeight) / 2;
+
+			DrawText(buttonText, textX, textY, 30, BLACK);
+
+            //równie tani co poprzedni - closebutton
+            Rectangle closeButton = {screenWidth / 2 - 100, screenHeight / 2 + 120, 200, 50};
+            DrawRectangleRec(closeButton, LIGHTGRAY);
+            DrawText("Zamknij", closeButton.x + 70, closeButton.y + 10, 30, BLACK);
+
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                Vector2 mousePos = GetMousePosition();
+                if (CheckCollisionPointRec(mousePos, playAgainButton)) {
+                    ResetGame(&playerBoard, &enemyBoard, &playerShip, &enemyShip);
+                    gameState = GAME_RUNNING;
+                    playerTurn = true;
+                    message[0] = '\0';
+                } else if (CheckCollisionPointRec(mousePos, closeButton)) {
+                    CloseWindow();
+                    break;
+                }
+            }
+        }
+
+        EndDrawing();
+    }
+
+    CloseWindow();
+};
