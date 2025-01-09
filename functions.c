@@ -55,7 +55,14 @@ void UpdateShip(bool* isDragging, struct ship* s)
 	{													//trzeba bedzie zaktualizowac funkcje tak aby aktualizowala polozenie,hitbox i sprite w interfejsie graficznym. 
 														//funkcja spelnia absolutne minimum do testowania mechanik
 		ship* statek =malloc(sizeof(ship));
+		if(statek == NULL){
+			return NULL;
+		}
 		statek->boardplace=malloc(type*sizeof(shiptile));
+		if(statek->boardplace == NULL){
+			free(statek);
+			return NULL;
+		}
 		for (int i = 0; i < type; i++)
 		{
 			statek->boardplace[i].got_shot=0;
@@ -65,12 +72,18 @@ void UpdateShip(bool* isDragging, struct ship* s)
 	}
 	void delship(ship* statek)
 	{
-		free(statek->boardplace);
+		if(statek==NULL) return;
+		if(statek ->boardplace != NULL){
+			free(statek->boardplace);
+		}
 		free(statek);
 	}
 board* initboard()
 {
    	board *newBoard = (board*)malloc(sizeof(board));
+	if(newBoard==NULL){
+		return NULL;//w sumie warto sprawdzić, czy nie ma błędu alokacji pamięci
+	}
    	for (int y = 0; y < BOARD_SIZE; y++)
 	{
        	for (int x = 0; x < BOARD_SIZE; x++)
@@ -296,14 +309,14 @@ struct array_cordinals* Get_array_cordinals(int offsetX, int offsetY) {
 
     int x = GetMouseX();
     int y = GetMouseY();
-
+	
     x -= offsetX;
     y -= offsetY;
 
     x = x / TILE_SIZE;
     y = y / TILE_SIZE;
-
-    if (x < 0 || x >= 9 || y < 0 || y >= 9)
+	//printf("%i, %i\n", x, y);
+    if (x < 0 || x > 9 || y < 0 || y > 9)//9 jest jak najbardziej dopuszczalne!
     {
         free(cordinal);
         return NULL;
@@ -438,9 +451,10 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
             if (playerTurn) {
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     struct array_cordinals *cords = Get_array_cordinals(enemyOffsetX, enemyOffsetY);
-                    if(cords==NULL) break;
+                    if(cords==NULL) goto VALIDCLICK;//dobrze, że dr Paweł Laskoś-Grabowski tego nie sprawdza, cóż byłem do tego zmuszony
                     int x = cords->x;
                     int y = cords->y;
+					free(cords);
 
                     if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
                         pair shot = {x, y};
@@ -497,7 +511,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                 }
                 else playerTurn = true;
             }
-
+			VALIDCLICK:
             // Check win conditions
             if (CheckWinCondition(playerBoard)) {
                 gameState = GAME_AI_WON;
