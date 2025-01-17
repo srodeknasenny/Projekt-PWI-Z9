@@ -215,9 +215,8 @@ void PrintShipPositions(ship *s)
 	}
 }
 
-GameData GameSet()
+GameData GameSet( GameState gameState )
 {
-    int game_phase = 0;
     int gridSize = 10; // Rozmiar planszy
     // int TILE_SIZE = 50; // Rozmiar pojedynczej kratki (w pikselach)
 
@@ -389,44 +388,7 @@ GameData GameSet()
 
         ClearBackground(RAYWHITE);
 
-        if (game_phase == 0) {
-            // Rysowanie ekranu startowego
-            DrawText("Witaj w Statki The Game!", SCREENWIDTH / 2 - MeasureText("Witaj w Statki The Game!", 40) / 2, SCREENHEIGHT / 2 - 80, 40, DARKBLUE);
-    
-            // Wymiary i pozycje przycisków
-            int buttonWidth = 200;
-            int buttonHeight = 50;
-            int buttonYSpacing = 10;
-
-            Rectangle buttonOnePlayer = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2, buttonWidth, buttonHeight };
-            Rectangle buttonTwoPlayers = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2 + buttonHeight + buttonYSpacing, buttonWidth, buttonHeight };
-
-            // Rysowanie przycisków
-            DrawRectangleRec(buttonOnePlayer, LIGHTGRAY);
-            DrawRectangleRec(buttonTwoPlayers, LIGHTGRAY);
-            DrawText("Jeden gracz", buttonOnePlayer.x + buttonWidth / 2 - MeasureText("Jeden gracz", 20) / 2, buttonOnePlayer.y + buttonHeight / 2 - 10, 20, BLACK);
-            DrawText("Dwóch graczy", buttonTwoPlayers.x + buttonWidth / 2 - MeasureText("Dwóch graczy", 20) / 2, buttonTwoPlayers.y + buttonHeight / 2 - 10, 20, BLACK);
-
-            // Wykrywanie kliknięcia myszką
-            Vector2 mousePoint = GetMousePosition();
-
-            if (CheckCollisionPointRec(mousePoint, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                game_phase = 1; // Tryb jednego gracza
-            } 
-            else if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                game_phase = 2; // Tryb dwóch graczy
-            }
-
-            // Zmiana koloru przycisku po najechaniu myszką
-            if (CheckCollisionPointRec(mousePoint, buttonOnePlayer)) {
-                DrawRectangleLinesEx(buttonOnePlayer, 2, DARKBLUE);
-            } 
-            else if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers)) {
-                DrawRectangleLinesEx(buttonTwoPlayers, 2, DARKBLUE);
-            }
-        }
-        if (game_phase > 0) 
-        {
+ 
             DrawLine(SCREENWIDTH / 2, 0, SCREENWIDTH / 2, SCREENHEIGHT, BLACK); // Pionowa linia
 
             Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT - 100, 220, 50};
@@ -463,10 +425,18 @@ GameData GameSet()
                     {
                         BeginDrawing();
                         DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, (Color){0, 0, 0, alpha});
+                        //napis nad planszą
+                        if(gameState == GAME_START)
+                            DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 20) / 2, gridStartY - 50, 20, BLACK);
+                        else if(gameState == GAME_PREPARE1)
+                            DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 20) / 2, gridStartY - 50, 20, BLACK);
+                        else if(gameState == GAME_PREPARE2)
+                            DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 20) / 2, gridStartY - 50, 20, BLACK);
+                        
                         for (int i = 0; i < gridSize; i++)
                         {
                             char label[3]; // Increased size to accommodate two-digit numbers
-                          snprintf(label, sizeof(label), "%c", 'A' + i);
+                            snprintf(label, sizeof(label), "%c", 'A' + i);
                             DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
                             snprintf(label, sizeof(label), "%d", i + 1);
                             DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
@@ -486,9 +456,17 @@ GameData GameSet()
                         EndDrawing();
                         usleep(40000);
                     }
+                    DrawText("Zacznij bitwe!", StartBattleButton.x + 10, StartBattleButton.y + 10, 30, BLACK);
                     break;
                 }
             }
+            //napis nad planszą
+            if(gameState == GAME_START)
+                DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 20) / 2, gridStartY - 50, 20, BLACK);
+            else if(gameState == GAME_PREPARE1)
+                DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 20) / 2, gridStartY - 50, 20, BLACK);
+            else if(gameState == GAME_PREPARE2)
+                DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 20) / 2, gridStartY - 50, 20, BLACK);
 
             for (int i = 0; i < gridSize; i++)
             {
@@ -496,7 +474,7 @@ GameData GameSet()
                 snprintf(label, sizeof(label), "%c", 'A' + i);
                 DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
                 snprintf(label, sizeof(label), "%d", i + 1);
-               DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
+                DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
             }
 
             for (int i = 0; i < gridSize; i++)
@@ -514,7 +492,6 @@ GameData GameSet()
                 else
                     DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE); // Normalny tint dla statków ustawionych prawidłowo
             }
-        }
         EndDrawing();
     }
 
@@ -1472,4 +1449,55 @@ void UpdateSlider(struct slider* s){
 		DrawText(s->valText, (int)(s->right + s->hand_texture.width / 2), (int)(s->y_pos), s->hitbox.height, BLACK);
 
 	}
+}
+
+GameState PreGame() 
+{
+    while (!WindowShouldClose()) 
+    {
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+
+        // Rysowanie ekranu startowego
+        DrawText("Witaj w Statki The Game!", SCREENWIDTH / 2 - MeasureText("Witaj w Statki The Game!", 40) / 2, SCREENHEIGHT / 2 - 80, 40, DARKBLUE);
+        
+        // Wymiary i pozycje przycisków
+        int buttonWidth = 200;
+        int buttonHeight = 50;
+        int buttonYSpacing = 10;
+
+        Rectangle buttonOnePlayer = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2, buttonWidth, buttonHeight };
+        Rectangle buttonTwoPlayers = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2 + buttonHeight + buttonYSpacing, buttonWidth, buttonHeight };
+
+        // Rysowanie przycisków
+        DrawRectangleRec(buttonOnePlayer, LIGHTGRAY);
+        DrawRectangleRec(buttonTwoPlayers, LIGHTGRAY);
+        DrawText("Jeden gracz", buttonOnePlayer.x + buttonWidth / 2 - MeasureText("Jeden gracz", 20) / 2, buttonOnePlayer.y + buttonHeight / 2 - 10, 20, BLACK);
+        DrawText("Dwóch graczy", buttonTwoPlayers.x + buttonWidth / 2 - MeasureText("Dwóch graczy", 20) / 2, buttonTwoPlayers.y + buttonHeight / 2 - 10, 20, BLACK);
+
+        // Wykrywanie kliknięcia myszką
+        Vector2 mousePoint = GetMousePosition();
+
+        if (CheckCollisionPointRec(mousePoint, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            EndDrawing();
+            return GAME_PREPARE1;
+        } 
+        else if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            EndDrawing();
+            return GAME_PREPARE2;
+        }
+
+        // Zmiana koloru przycisku po najechaniu myszką
+        if (CheckCollisionPointRec(mousePoint, buttonOnePlayer)) {
+            DrawRectangleRec(buttonOnePlayer, GRAY);
+            DrawText("Jeden gracz", buttonOnePlayer.x + buttonWidth / 2 - MeasureText("Jeden gracz", 20) / 2, buttonOnePlayer.y + buttonHeight / 2 - 10, 20, BLACK);
+        }
+        if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers)) {
+            DrawRectangleRec(buttonTwoPlayers, GRAY);
+            DrawText("Dwóch graczy", buttonTwoPlayers.x + buttonWidth / 2 - MeasureText("Dwóch graczy", 20) / 2, buttonTwoPlayers.y + buttonHeight / 2 - 10, 20, BLACK);
+        }
+
+        EndDrawing();
+    }
+    return GAME_RUNNING; // Default state if the window is closed
 }

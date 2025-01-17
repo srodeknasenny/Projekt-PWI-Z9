@@ -6,16 +6,26 @@
 
 int main()
 {
-    board *enemyBoard = init_ai_ships();        //druga plansza
-    ship *enemyShip = initship(3);
-    pair enemyStart = {4, 4};
+    GameState gameState = GAME_START;
 
+    board *enemyBoard = init_ai_ships();        //druga plansza
+    ship *enemyShip;
     ship *playerShip;
 
     InitWindow(SCREENWIDTH, SCREENHEIGHT, "The Statki Game");
     SetTargetFPS(60);
 
-    GameData gameData = GameSet();          //uruchomienie ustawiania statków
-    
-    PlayGame(gameData.playerBoard, enemyBoard,playerShip,enemyShip);
+    gameState = PreGame();
+
+    if(gameState == GAME_PREPARE1)
+    {
+        GameData gameData = GameSet(GAME_START);
+        PlayGame(gameData.playerBoard, enemyBoard,playerShip,enemyShip);
+    }
+    else if(gameState == GAME_PREPARE2)
+    {
+        GameData gameData1 = GameSet(GAME_PREPARE1);
+        GameData gameData2 = GameSet(GAME_PREPARE2);
+        PlayGame_PvP(gameData1.playerBoard, gameData2.playerBoard,playerShip,enemyShip);
+    }
 }
