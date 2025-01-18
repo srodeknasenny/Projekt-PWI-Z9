@@ -118,6 +118,11 @@ void CheckShipPlacement(ship *ships)
 
     for (int i = 0; i < MAX_SHIPS; i++)
     {
+        ships[i].invalidPlacement = false; // Reset invalidPlacement flag for all ships
+    }
+
+    for (int i = 0; i < MAX_SHIPS; i++)
+    {
         for (int j = 0; j < ships[i].length; j++)
         {
             if(ships[i].isPlaced == true)
@@ -133,11 +138,6 @@ void CheckShipPlacement(ship *ships)
                 }
             }
         }
-    }
-
-    for (int i = 0; i < MAX_SHIPS; i++)
-    {
-        ships[i].invalidPlacement = false;
     }
     
     
@@ -194,8 +194,8 @@ void CheckShipPlacement(ship *ships)
         }
     }
 
-    /* // clear terminal
-    system("cls");
+    // clear terminal
+    /* system("cls");
     for (int y = 0; y <= 9; y++)
     {
         for (int x = 0; x <= 9; x++)
@@ -342,14 +342,31 @@ GameData GameSet( GameState gameState )
 
     bool isDragging = false;
 
-    while (!WindowShouldClose())
+    while (1)
     {
+        if (WindowShouldClose())
+        {
+            CloseWindow();
+            // Do dodania zwalnianie pamięci
+            exit(0);
+        }
+        
         // Update ships
         for (int i = 0; i < MAX_SHIPS; i++)
         {
+            // Sprawdzenie czy statek nie wyleciał poza okno
+            if (playerShips[i].pos.x < 0 || playerShips[i].pos.x + (int)playerShips[i].length * (TILE_SIZE) > SCREENWIDTH ||
+                playerShips[i].pos.y < 0 || playerShips[i].pos.y + TILE_SIZE > SCREENHEIGHT)
+            {
+                playerShips[i].pos.x = SCREENWIDTH / 4 - playerShips[i].texture.width / 2;
+                playerShips[i].pos.y = SCREENHEIGHT / 2 - playerShips[i].texture.height / 2;
+                playerShips[i].updateHitbox(&playerShips[i]);
+            }
+
             playerShips[i].updateShip(&isDragging, &playerShips[i]);
             if (isDragging && playerShips[i].isUpdating)
             {
+
                 // Sprawdzenie czy cały statek mieści się na planszy
                 if (playerShips[i].kierunek == 0 || playerShips[i].kierunek == 2) // Kierunek pionowy
                 {
@@ -407,7 +424,7 @@ GameData GameSet( GameState gameState )
                 {
                     if (playerShips[i].invalidPlacement == true)
                     {
-                        // Jeśli którykolwiek statek jest źle ustawiony, to nie można rozpocząć bitwy. Wyświetlany jest komunikat o błędzie.
+                        // Jeśli statek jest źle ustawiony, to nie można rozpocząć bitwy. Wyświetlany jest komunikat o błędzie.
                         allShipsPlaced = false;
                         ClearBackground(RAYWHITE);
                         BeginDrawing();
@@ -417,6 +434,20 @@ GameData GameSet( GameState gameState )
                         usleep(1000000);
                         break;
                     }
+
+                    // Jeśli statek nie jest ustawiony, to nie można rozpocząć bitwy. Wyświetlany jest komunikat o błędzie.
+                    if (playerShips[i].isPlaced == false)
+                    {
+                        allShipsPlaced = false;
+                        ClearBackground(RAYWHITE);
+                        BeginDrawing();
+                        DrawRectangle(SCREENWIDTH / 2, SCREENHEIGHT / 4, SCREENWIDTH / 2, SCREENHEIGHT / 2, BLUE);
+                        DrawText("Nie wszystkie statki sa ustawione!", 3 * SCREENWIDTH / 4 - MeasureText("Nie wszystkie statki sa ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
+                        EndDrawing();
+                        usleep(1000000);
+                        break;
+                    }
+                    
                 }
 
                 if (allShipsPlaced)
@@ -1456,7 +1487,7 @@ GameState PreGame()
     Texture2D titleTexture = LoadTexture("Napisy/tytul.png");
     Texture2D onePlayerTexture = LoadTexture("Napisy/jedengracz.png");
     Texture2D twoPlayersTexture = LoadTexture("Napisy/dwochgraczy.png");
-    Texture2D backgroundTexture = LoadTexture("Napisy/tło.png");
+    Texture2D backgroundTexture = LoadTexture("Napisy/tlo.png");
     Texture2D buttonTexture = LoadTexture("Napisy/przycisk.png");
 
     while (!WindowShouldClose()) 
