@@ -9,8 +9,15 @@ int main()
     GameState gameState = GAME_START;
 
     board *enemyBoard = init_ai_ships();        //druga plansza
-    ship *enemyShip;
-    ship *playerShip;
+    ship *enemyShip = NULL;
+    ship *playerShip = NULL;
+
+    InitAudioDevice(); 
+
+    /*
+        Przekazywanie niezainicjalizowany zmiennych do funkcji to narażanie się na undefined 
+        behaviour, więc nie chcąc wywracać kodu do góry nogami inicjalizuję je jako NULL.
+    */
 
     InitWindow(SCREENWIDTH, SCREENHEIGHT, "The Statki Game");
     SetTargetFPS(60);

@@ -342,8 +342,13 @@ GameData GameSet( GameState gameState )
 
     bool isDragging = false;
 
+    Music calm = LoadMusicStream("music/The_calm_before_the_storm.ogg");
+    calm.looping - true;
+
+    PlayMusicStream(calm);
     while (1)
     {
+        UpdateMusicStream(calm);
         if (WindowShouldClose())
         {
             CloseWindow();
@@ -561,6 +566,7 @@ GameData GameSet( GameState gameState )
     }
 
     GameData gameData = {playerBoard, playerShips, MAX_SHIPS};
+    StopMusicStream(calm);
     return gameData;
 }
 
@@ -869,22 +875,22 @@ array_cordinals* Get_array_cordinals(int offsetX, int offsetY) {
 
 void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship **enemyShip) //basicowa funkcja resetujaca gre (pozniej trzeba wyrzucic stad playership i enemyship, zeby samo usuwalo - nikt nie bedzie tego recznie ustawial)
 {
-    delboard(*playerBoard);
-    delboard(*enemyBoard);
-    delship(*playerShip);
-    delship(*enemyShip);
+    //delboard(*playerBoard);
+    //delboard(*enemyBoard);
+    //delship(*playerShip);
+    //delship(*enemyShip);
 
-    *playerBoard = initboard();
-    *enemyBoard = initboard();
+    *playerBoard = init_ai_ships();//w następnej rundzie wszystko niech będzie ustawione losowo
+    *enemyBoard = init_ai_ships();
 	/*reczne dodawanie statkow, pozniej tego nie bedzie, bo zacznie sie funkcja z ustawianiem przez uzytkownika*/
-    *playerShip = initship(3);
-    *enemyShip = initship(3);
-
+    *playerShip = NULL;
+    *enemyShip = NULL;
+/*
     pair playerStart = {2, 2};
     pair enemyStart = {4, 4};
 
     placeStatek(*playerBoard, *playerShip, playerStart, 2);
-    placeStatek(*enemyBoard, *enemyShip, enemyStart, 3);
+    placeStatek(*enemyBoard, *enemyShip, enemyStart, 3);*/
 };
 
 void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) {
@@ -1094,6 +1100,9 @@ board* init_ai_ships(){
 }
 
 void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip) {
+    Music sos = LoadMusicStream("music/SOS_Signal.ogg");
+    sos.looping = true;
+    PlayMusicStream(sos);
     int playerOffsetX = (SCREENWIDTH * 1/3)-20 - (BOARD_SIZE * TILE_SIZE) / 2;
     int playerOffsetY = (SCREENHEIGHT - (BOARD_SIZE * TILE_SIZE)) / 2;
     int enemyOffsetX = (SCREENWIDTH * 2/3)+20 - (BOARD_SIZE * TILE_SIZE) / 2;
@@ -1124,6 +1133,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
     }
 
     while (!WindowShouldClose()) {
+        UpdateMusicStream(sos);
         BeginDrawing();
 
         if (IsKeyPressed(KEY_ESCAPE)) {
@@ -1250,11 +1260,14 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
 
         EndDrawing();
     }
-
+    StopMusicStream(sos);
     CloseWindow();
 }
 
 void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship) {
+    Music sos = LoadMusicStream("music/SOS_Signal.ogg");
+    sos.looping = true;
+    PlayMusicStream(sos);
     int player1OffsetX = (SCREENWIDTH * 1/3)-20 - (BOARD_SIZE * TILE_SIZE) / 2;
     int player1OffsetY = (SCREENHEIGHT - (BOARD_SIZE * TILE_SIZE)) / 2;
     int player2OffsetX = (SCREENWIDTH * 2/3)+20 - (BOARD_SIZE * TILE_SIZE) / 2;
@@ -1285,6 +1298,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
     }
 
     while (!WindowShouldClose()) {
+        UpdateMusicStream(sos);
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
@@ -1433,6 +1447,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
 
         EndDrawing();
     }
+    StopMusicStream(sos);
     CloseWindow();
 }
 
@@ -1484,6 +1499,10 @@ void UpdateSlider(struct slider* s){
 
 GameState PreGame() 
 {
+    Music pirent = LoadMusicStream("music/Pirates-entertaiment.ogg");
+    pirent.looping = true;
+    PlayMusicStream(pirent);
+
     Texture2D titleTexture = LoadTexture("Napisy/tytul.png");
     Texture2D onePlayerTexture = LoadTexture("Napisy/jedengracz.png");
     Texture2D twoPlayersTexture = LoadTexture("Napisy/dwochgraczy.png");
@@ -1492,6 +1511,8 @@ GameState PreGame()
 
     while (!WindowShouldClose()) 
     {
+        UpdateMusicStream(pirent);
+
         BeginDrawing();
         DrawTexture(backgroundTexture, -20, -20, WHITE);
 
@@ -1532,10 +1553,12 @@ GameState PreGame()
 
         if (CheckCollisionPointRec(mousePoint, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             EndDrawing();
+            StopMusicStream(pirent);
             return GAME_PREPARE1;
         } 
         else if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             EndDrawing();
+            StopMusicStream(pirent);
             return GAME_PREPARE2;
         }
 
@@ -1556,5 +1579,6 @@ GameState PreGame()
     UnloadTexture(twoPlayersTexture);
     UnloadTexture(backgroundTexture);
     UnloadTexture(buttonTexture);
+    StopMusicStream(pirent);
     return GAME_RUNNING; // Default state if the window is closed
 }
