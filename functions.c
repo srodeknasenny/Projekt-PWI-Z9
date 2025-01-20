@@ -239,6 +239,9 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
     const char *ship3Files[] = {"textures/3x1.png", "textures/3x1.png"};
     const char *ship4Files[] = {"textures/4x1.png"};
 
+    Texture2D startBattleTexture = LoadTexture("textures/rozpocznij_bitwe.png");
+    Texture2D randomShipGenTexture = LoadTexture("textures/ustaw_losowo.png");
+
     Image ship1Images[4];
     Texture2D ship1Textures[4];
     for (int i = 0; i < 4; i++)
@@ -452,22 +455,32 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
 
             BeginDrawing();
 
-
             DrawTexture(background, 0, 0, WHITE);
-                //DrawLine(SCREENWIDTH / 2, 0, SCREENWIDTH / 2, SCREENHEIGHT, BLACK); // Pionowa linia
+            
+            Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT - 100, 220, 50};
+            Rectangle RandomShipGenButton = {SCREENWIDTH - 560, SCREENHEIGHT - 100, 220, 50};
 
-                Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT - 100, 220, 50};
+            Rectangle startBattleDrawRect = StartBattleButton;
+            Rectangle randomShipGenDrawRect = RandomShipGenButton;
 
-                //DrawRectangleRec(StartBattleButton, LIGHTGRAY);
-                DrawTexture(startbattle, StartBattleButton.x, StartBattleButton.y, WHITE);
-                Rectangle RandomShipGenButton = {SCREENWIDTH - 560, SCREENHEIGHT - 100, 220, 50};
-                DrawRectangleRec(RandomShipGenButton, LIGHTGRAY);
-                DrawText("Ustaw losowo", RandomShipGenButton.x + 10, RandomShipGenButton.y + 10, 30, BLACK);
+            // Sprawdź, czy myszka znajduje się nad przyciskiem
+            Vector2 mousePos = GetMousePosition();
 
-                if (CheckCollisionPointRec(GetMousePosition(), RandomShipGenButton))
-                    DrawRectangleLinesEx(RandomShipGenButton, 2, DARKBLUE);
-                if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton))
-                    DrawRectangleLinesEx(StartBattleButton, 2, DARKBLUE);
+            if (CheckCollisionPointRec(mousePos, StartBattleButton)) {
+                startBattleDrawRect.x -= StartBattleButton.width * 0.05f;   
+                startBattleDrawRect.y -= StartBattleButton.height * 0.05f;  
+                startBattleDrawRect.width = StartBattleButton.width * 1.1f; 
+                startBattleDrawRect.height = StartBattleButton.height * 1.1f; 
+            }
+
+            if (CheckCollisionPointRec(mousePos, RandomShipGenButton)) {
+                randomShipGenDrawRect.x -= RandomShipGenButton.width * 0.05f;
+                randomShipGenDrawRect.y -= RandomShipGenButton.height * 0.05f;
+                randomShipGenDrawRect.width = RandomShipGenButton.width * 1.1f;
+                randomShipGenDrawRect.height = RandomShipGenButton.height * 1.1f;
+            }
+            DrawTexturePro(startBattleTexture,(Rectangle){0, 0, startBattleTexture.width, startBattleTexture.height}, startBattleDrawRect, (Vector2){0, 0}, 0.0f,  WHITE);
+            DrawTexturePro(randomShipGenTexture,(Rectangle){0, 0, randomShipGenTexture.width, randomShipGenTexture.height},randomShipGenDrawRect,(Vector2){0, 0},0.0f, WHITE);
 
                 if (CheckCollisionPointRec(GetMousePosition(), RandomShipGenButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
                 {
@@ -663,6 +676,7 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
     {
         UnloadTexture(ship4Textures[i]);
     }
+
 
     GameData* gameData;
     gameData = (GameData *)malloc(sizeof(GameData));
@@ -1297,6 +1311,8 @@ board* init_ai_ships(){
 void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip, PauseMenu *pauseMenu) {
     SetExitKey(0);
     Music sos = LoadMusicStream("music/SOS_Signal.ogg");
+    Texture2D playAgainTexture = LoadTexture("textures/zagraj_ponownie.png");
+    Texture2D closeTexture = LoadTexture("textures/wyjdz.png");
     sos.looping = true;
     PlayMusicStream(sos);
     int playerOffsetX = (SCREENWIDTH * 1/3)-20 - (BOARD_SIZE * TILE_SIZE) / 2;
@@ -1450,18 +1466,34 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
             } else if (gameState == GAME_AI_WON) {
                 DrawText("Przegrywasz!", SCREENWIDTH / 2 - MeasureText("Przegrywasz!", 40) / 2, SCREENHEIGHT / 2 - 20, 40, RED);
             }
-            Rectangle playAgainButton = {SCREENWIDTH / 2 - 150, SCREENHEIGHT / 2 + 50, 300, 50};
-            const char* buttonText = "Zagraj ponownie";
-            DrawRectangleRec(playAgainButton, LIGHTGRAY);
-            int textWidth = MeasureText(buttonText, 30);
-            int textHeight = 30;
-            int textX = playAgainButton.x + (playAgainButton.width - textWidth) / 2;
-            int textY = playAgainButton.y + (playAgainButton.height - textHeight) / 2;
-            DrawText(buttonText, textX, textY, 30, BLACK);
 
-            Rectangle closeButton = {SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 120, 200, 50};
-            DrawRectangleRec(closeButton, LIGHTGRAY);
-            DrawText("Zamknij", closeButton.x + 70, closeButton.y + 10, 30, BLACK);
+            Rectangle playAgainButton = { SCREENWIDTH / 2 - 150, SCREENHEIGHT / 2 + 50, 300, 50 };
+                Rectangle closeButton = { SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 120, 200, 50 };
+
+                // Prostokąty do rysowania (początkowo takie same jak logiczne prostokąty przycisków)
+                Rectangle drawPlayAgainButton = playAgainButton;
+                Rectangle drawCloseButton = closeButton;
+
+                // Pozycja myszy
+                Vector2 mousePos = GetMousePosition();
+
+                // Sprawdzenie kolizji i powiększenie prostokątów do rysowania
+                if (CheckCollisionPointRec(mousePos, playAgainButton)) {
+                    drawPlayAgainButton.x -= playAgainButton.width * 0.05f; 
+                    drawPlayAgainButton.y -= playAgainButton.height * 0.05f;
+                    drawPlayAgainButton.width *= 1.1f;                      
+                    drawPlayAgainButton.height *= 1.1f;                     
+                }
+
+                if (CheckCollisionPointRec(mousePos, closeButton)) {
+                    drawCloseButton.x -= closeButton.width * 0.05f;
+                    drawCloseButton.y -= closeButton.height * 0.05f;
+                    drawCloseButton.width *= 1.1f;
+                    drawCloseButton.height *= 1.1f;
+                }
+                // Rysowanie przycisków
+                DrawTexturePro(playAgainTexture,(Rectangle){0, 0, playAgainTexture.width, playAgainTexture.height}, drawPlayAgainButton, (Vector2){0, 0},  0.0f, WHITE);
+                DrawTexturePro(closeTexture,(Rectangle){0, 0, closeTexture.width, closeTexture.height},drawCloseButton,(Vector2){0, 0}, 0.0f,WHITE);
 
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = GetMousePosition();
@@ -1480,6 +1512,8 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
 
         EndDrawing();
     }
+    UnloadTexture(playAgainTexture);
+    UnloadTexture(closeTexture);
     StopMusicStream(sos);
     if (pauseMenu->toMainMenu){
         NewGame(pauseMenu);
@@ -1491,6 +1525,9 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
 void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship, PauseMenu *pauseMenu) {
     SetExitKey(0);
     Music sos = LoadMusicStream("music/SOS_Signal.ogg");
+    Texture2D newTurnTexture = LoadTexture("textures/nowa_tura.png");
+    Texture2D playAgainTexture = LoadTexture("textures/zagraj_ponownie.png");
+    Texture2D closeTexture = LoadTexture("textures/wyjdz.png");
     sos.looping = true;
     PlayMusicStream(sos);
     SetMusicVolume(sos, 0.33f*pauseMenu->all_sound.val * pauseMenu->music.val);
@@ -1555,9 +1592,20 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                 BeginDrawing();
                 ClearBackground(RAYWHITE);
 
-                Rectangle newTurnButton = {SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 50, 200, 50};
-                DrawRectangleRec(newTurnButton, LIGHTGRAY);
-                DrawText("Nowa tura", newTurnButton.x + 30, newTurnButton.y + 10, 30, BLACK);
+                Rectangle newTurnButton = { SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 50, 200, 50 };
+
+                Rectangle drawNewTurnButton = newTurnButton;
+
+                Vector2 mousePos = GetMousePosition();
+                if (CheckCollisionPointRec(mousePos, newTurnButton)) {
+                    drawNewTurnButton.x -= newTurnButton.width * 0.05f;  
+                    drawNewTurnButton.y -= newTurnButton.height * 0.05f; 
+                    drawNewTurnButton.width *= 1.1f;                     
+                    drawNewTurnButton.height *= 1.1f;                   
+                }
+
+
+                DrawTexturePro(newTurnTexture,(Rectangle){0, 0, newTurnTexture.width, newTurnTexture.height},drawNewTurnButton, (Vector2){0, 0}, 0.0f,  WHITE);
 
                 if (CheckCollisionPointRec(GetMousePosition(), newTurnButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     player1Turn = !player1Turn;
@@ -1672,13 +1720,33 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                 DrawText("Gracz 2 Wygrywa!", SCREENWIDTH / 2 - MeasureText("Gracz 2 Wygrywa!", 40) / 2, SCREENHEIGHT / 2 - 20, 40, GREEN);
             }
 
-            Rectangle playAgainButton = {SCREENWIDTH / 2 - 150, SCREENHEIGHT / 2 + 50, 300, 50};
-                DrawRectangleRec(playAgainButton, LIGHTGRAY);
-                DrawText("Zagraj ponownie", playAgainButton.x + 30, playAgainButton.y + 10, 30, BLACK);
+                Rectangle playAgainButton = { SCREENWIDTH / 2 - 150, SCREENHEIGHT / 2 + 50, 300, 50 };
+                Rectangle closeButton = { SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 120, 200, 50 };
 
-                Rectangle closeButton = {SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 120, 200, 50};
-                DrawRectangleRec(closeButton, LIGHTGRAY);
-                DrawText("Zamknij", closeButton.x + 70, closeButton.y + 10, 30, BLACK);
+                // Prostokąty do rysowania (początkowo takie same jak logiczne prostokąty przycisków)
+                Rectangle drawPlayAgainButton = playAgainButton;
+                Rectangle drawCloseButton = closeButton;
+
+                // Pozycja myszy
+                Vector2 mousePos = GetMousePosition();
+
+                // Sprawdzenie kolizji i powiększenie prostokątów do rysowania
+                if (CheckCollisionPointRec(mousePos, playAgainButton)) {
+                    drawPlayAgainButton.x -= playAgainButton.width * 0.05f; 
+                    drawPlayAgainButton.y -= playAgainButton.height * 0.05f;
+                    drawPlayAgainButton.width *= 1.1f;                      
+                    drawPlayAgainButton.height *= 1.1f;                     
+                }
+
+                if (CheckCollisionPointRec(mousePos, closeButton)) {
+                    drawCloseButton.x -= closeButton.width * 0.05f;
+                    drawCloseButton.y -= closeButton.height * 0.05f;
+                    drawCloseButton.width *= 1.1f;
+                    drawCloseButton.height *= 1.1f;
+                }
+                // Rysowanie przycisków
+                DrawTexturePro(playAgainTexture,(Rectangle){0, 0, playAgainTexture.width, playAgainTexture.height}, drawPlayAgainButton, (Vector2){0, 0},  0.0f, WHITE);
+                DrawTexturePro(closeTexture,(Rectangle){0, 0, closeTexture.width, closeTexture.height},drawCloseButton,(Vector2){0, 0}, 0.0f,WHITE);
 
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = GetMousePosition();
@@ -1698,6 +1766,9 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
 
         EndDrawing();
     }
+    UnloadTexture(newTurnTexture);
+    UnloadTexture(playAgainTexture);
+    UnloadTexture(closeTexture);
     StopMusicStream(sos);
 
     if (pauseMenu->toMainMenu){
@@ -1946,55 +2017,91 @@ GameState PreGame(PauseMenu *pauseMenu)
         int titlePosY = SCREENHEIGHT / 2 - 280; 
         DrawTextureEx(titleTexture, (Vector2){titlePosX, titlePosY+30}, 0.0f, titleScale, WHITE);
     
-        int buttonSpacing = 50;
-        int buttonWidth = 300;  // Docelowa szerokość przycisków
-        int buttonHeight = 100; // Docelowa wysokość przycisków
+        int buttonSpacing = 20;
+        int buttonWidth = 350;  // Docelowa szerokość przycisków
+        int buttonHeight = 150; // Docelowa wysokość przycisków
         float buttonScaleX = (float)buttonWidth / buttonTexture.width;
-        //float buttonScaleY = (float)buttonHeight / buttonTexture.height; unused variable /shrug
 
-        Rectangle buttonOnePlayer = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2, buttonWidth, buttonHeight+43};
-        Rectangle buttonTwoPlayers = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2 + buttonHeight + buttonSpacing , buttonWidth, buttonHeight+43};
+// Prostokąty dla przycisków
+Rectangle buttonOnePlayer = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2, buttonWidth, buttonHeight };
+Rectangle buttonTwoPlayers = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2 + buttonHeight + buttonSpacing, buttonWidth, buttonHeight };
 
-        // Rysowanie tekstur przycisków
-        DrawTextureEx(buttonTexture, (Vector2){buttonOnePlayer.x, buttonOnePlayer.y}, 0.0f, buttonScaleX, WHITE);
-        DrawTextureEx(buttonTexture, (Vector2){buttonTwoPlayers.x, buttonTwoPlayers.y}, 0.0f, buttonScaleX, WHITE);
+// Zmienne skalowania przycisków
+Rectangle scaledButtonOnePlayer = buttonOnePlayer;
+Rectangle scaledButtonTwoPlayers = buttonTwoPlayers;
 
-        // Rysowanie obrazów wewnątrz przycisków
-        float onePlayerImageScale = fminf((float)buttonWidth / onePlayerTexture.width - 0.15, (float)buttonHeight / onePlayerTexture.height);
-        float twoPlayersImageScale = fminf((float)buttonWidth / twoPlayersTexture.width - 0.15, (float)buttonHeight / twoPlayersTexture.height);
+// Skalowanie przycisków o 10% przy najechaniu myszką
+Vector2 mousePos = GetMousePosition();
 
-        int onePlayerImageX = buttonOnePlayer.x + (buttonWidth - onePlayerTexture.width * onePlayerImageScale) / 2;
-        int onePlayerImageY = buttonOnePlayer.y + (buttonHeight - onePlayerTexture.height * onePlayerImageScale) / 2;
-        int twoPlayersImageX = buttonTwoPlayers.x + (buttonWidth - twoPlayersTexture.width * twoPlayersImageScale) / 2;
-        int twoPlayersImageY = buttonTwoPlayers.y + (buttonHeight - twoPlayersTexture.height * twoPlayersImageScale) / 2;
+if (CheckCollisionPointRec(mousePos, buttonOnePlayer)) {
+    scaledButtonOnePlayer.x -= buttonOnePlayer.width * 0.05f;  // Przesunięcie w lewo
+    scaledButtonOnePlayer.y -= buttonOnePlayer.height * 0.05f; // Przesunięcie w górę
+    scaledButtonOnePlayer.width *= 1.1f;                       // Zwiększenie szerokości
+    scaledButtonOnePlayer.height *= 1.1f;                      // Zwiększenie wysokości
+}
 
-        DrawTextureEx(onePlayerTexture, (Vector2){onePlayerImageX, onePlayerImageY+20}, 0.0f, onePlayerImageScale, WHITE);
-        DrawTextureEx(twoPlayersTexture, (Vector2){twoPlayersImageX, twoPlayersImageY+20}, 0.0f, twoPlayersImageScale, WHITE);
+if (CheckCollisionPointRec(mousePos, buttonTwoPlayers)) {
+    scaledButtonTwoPlayers.x -= buttonTwoPlayers.width * 0.05f;
+    scaledButtonTwoPlayers.y -= buttonTwoPlayers.height * 0.05f;
+    scaledButtonTwoPlayers.width *= 1.1f;
+    scaledButtonTwoPlayers.height *= 1.1f;
+}
+
+// Rysowanie tła przycisków
+DrawTexturePro(
+    buttonTexture,
+    (Rectangle){0, 0, buttonTexture.width, buttonTexture.height},
+    scaledButtonOnePlayer,
+    (Vector2){0, 0},
+    0.0f,
+    WHITE
+);
+
+DrawTexturePro(
+    buttonTexture,
+    (Rectangle){0, 0, buttonTexture.width, buttonTexture.height},
+    scaledButtonTwoPlayers,
+    (Vector2){0, 0},
+    0.0f,
+    WHITE
+);
+
+// Skalowanie obrazów wewnątrz przycisków
+float onePlayerImageScale = fminf(
+    (scaledButtonOnePlayer.width / onePlayerTexture.width),
+    (scaledButtonOnePlayer.height / onePlayerTexture.height)
+);
+
+float twoPlayersImageScale = fminf(
+    (scaledButtonTwoPlayers.width / twoPlayersTexture.width),
+    (scaledButtonTwoPlayers.height / twoPlayersTexture.height)
+);
+
+// Obliczenie pozycji obrazów wewnętrznych
+int onePlayerImageX = scaledButtonOnePlayer.x + (scaledButtonOnePlayer.width - onePlayerTexture.width * onePlayerImageScale) / 2;
+int onePlayerImageY = scaledButtonOnePlayer.y + (scaledButtonOnePlayer.height - onePlayerTexture.height * onePlayerImageScale) / 2;
+int twoPlayersImageX = scaledButtonTwoPlayers.x + (scaledButtonTwoPlayers.width - twoPlayersTexture.width * twoPlayersImageScale) / 2;
+int twoPlayersImageY = scaledButtonTwoPlayers.y + (scaledButtonTwoPlayers.height - twoPlayersTexture.height * twoPlayersImageScale) / 2;
+
+// Rysowanie obrazów wewnątrz przycisków
+DrawTextureEx(onePlayerTexture, (Vector2){onePlayerImageX+26, onePlayerImageY+10}, 0.0f, onePlayerImageScale-0.16, WHITE);
+DrawTextureEx(twoPlayersTexture, (Vector2){twoPlayersImageX+26, twoPlayersImageY+10}, 0.0f, twoPlayersImageScale-0.16, WHITE);
 
 
-        // Wykrywanie kliknięcia myszką
-        Vector2 mousePoint = GetMousePosition();
 
-        if (CheckCollisionPointRec(mousePoint, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if (CheckCollisionPointRec(mousePos, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             EndDrawing();
             StopMusicStream(pirent);
             pauseMenu->toMainMenu = false;
             return GAME_PREPARE1;
         } 
-        else if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        else if (CheckCollisionPointRec(mousePos, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             EndDrawing();
             StopMusicStream(pirent);
             pauseMenu->toMainMenu = false;
             return GAME_PREPARE2;
         }
 
-        // Zmiana koloru przycisku po najechaniu myszką
-        if (CheckCollisionPointRec(mousePoint, buttonOnePlayer)) {
-            DrawRectangleLinesEx(buttonOnePlayer, 2, DARKBLUE);
-        }
-        if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers)) {
-            DrawRectangleLinesEx(buttonTwoPlayers, 2, DARKBLUE);
-        }
 
         EndDrawing();
     }
