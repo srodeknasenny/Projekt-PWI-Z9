@@ -371,6 +371,8 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
     Music calm = LoadMusicStream("music/The_calm_before_the_storm.ogg");
     calm.looping = true;
 
+    bool czy_random=false;
+
     SetExitKey(0);
     PlayMusicStream(calm);
     while (1)
@@ -497,7 +499,9 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
 
                 if (CheckCollisionPointRec(GetMousePosition(), RandomShipGenButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
                 {
+                    czy_random=true;
                     playerBoard = init_ai_ships();
+
                     printboard(playerBoard);
                     for (int alpha = 0; alpha <= 255; alpha += 5)
                     {
@@ -677,17 +681,20 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
     }
 
     // Układanie statków na w zmiennej playerBoard
-    for (int i = 0; i < MAX_SHIPS; i++)
+    if(!czy_random)
     {
-        int gridX = (playerShips[i].pos.x - gridStartX) / TILE_SIZE;
-        int gridY = (playerShips[i].pos.y - gridStartY) / TILE_SIZE;
-
-        if (gridX >= 0 && gridY >= 0)
+        for (int i = 0; i < MAX_SHIPS; i++)
         {
-            int dl = playerShips[i].length;
-            ship *playerS = initship(dl);
-            playerS->kierunek = playerShips[i].kierunek;;
-            placeStatek(playerBoard, playerS, (pair){gridX, gridY}, playerShips[i].kierunek);
+            int gridX = (playerShips[i].pos.x - gridStartX) / TILE_SIZE;
+            int gridY = (playerShips[i].pos.y - gridStartY) / TILE_SIZE;
+
+            if (gridX >= 0 && gridY >= 0)
+            {
+                int dl = playerShips[i].length;
+                ship *playerS = initship(dl);
+                playerS->kierunek = playerShips[i].kierunek;
+                placeStatek(playerBoard, playerS, (pair){gridX, gridY}, playerShips[i].kierunek);
+            }
         }
     }
 	printf("Contents of playerBoard:\n");
