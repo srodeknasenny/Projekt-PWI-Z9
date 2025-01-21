@@ -1777,7 +1777,6 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                     message[0] = '\0';
                 } else if (CheckCollisionPointRec(mousePos, closeButton)) {
                     FreeSounds();
-                    CloseWindow();
                     break;
                 }
             }
@@ -1915,7 +1914,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                 pair shot = {x, y};
                                 if (!player2Board->shots[x][y]) {
                                     shoot(player2Board, shot, pauseMenu);
-                                    snprintf(message, sizeof(message), "Gracz 1 strzelił w (%d, %d)", x, y);
+                                    snprintf(message, sizeof(message), "Gracz 1 strzelil w (%d, %d)", x, y);
                                     if (player2Board->BOARD[x][y] != NULL) {
                                         ship *currShip = player2Board->BOARD[x][y];
                                         bool sunk = true;
@@ -1927,7 +1926,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                         }
                                         if (sunk) {
                                             scream(pauseMenu);
-                                            snprintf(message, sizeof(message), "Gracz 1 zatopił statek!");
+                                            snprintf(message, sizeof(message), "Gracz 1 zatopil statek!");
                                         }
                                     } else {
                                         turnEnded = true;
@@ -1950,7 +1949,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                     }
 
                                 } else {
-                                    snprintf(message, sizeof(message), "Strzelałeś już tutaj!");
+                                    snprintf(message, sizeof(message), "Strzelales juz tutaj!");
                                 }
                             }
                         }
@@ -1975,7 +1974,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                 pair shot = {x, y};
                                 if (!player1Board->shots[x][y]) {
                                     shoot(player1Board, shot, pauseMenu);
-                                    snprintf(message, sizeof(message), "Gracz 2 strzelił w (%d, %d)", x, y);
+                                    snprintf(message, sizeof(message), "Gracz 2 strzelil w (%d, %d)", x, y);
                                     if (player1Board->BOARD[x][y] != NULL) {
                                         ship *currShip = player1Board->BOARD[x][y];
                                         bool sunk = true;
@@ -1987,7 +1986,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                         }
                                         if (sunk) {
                                             scream(pauseMenu);
-                                            snprintf(message, sizeof(message), "Gracz 2 zatopił statek!");
+                                            snprintf(message, sizeof(message), "Gracz 2 zatopil statek!");
                                         }
                                     } else {
                                         turnEnded = true;
@@ -2010,7 +2009,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                     }
 
                                 } else {
-                                    snprintf(message, sizeof(message), "Strzelałeś już tutaj!");
+                                    snprintf(message, sizeof(message), "Strzelaleś już tutaj!");
                                 }
                             }
                         }
@@ -2077,7 +2076,6 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                     message[0] = '\0';
                 } else if (CheckCollisionPointRec(mousePos, closeButton)) {
                     FreeSounds();
-                    CloseWindow();
                     break;
                 }
             }
