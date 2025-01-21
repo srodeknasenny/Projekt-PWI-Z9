@@ -237,8 +237,8 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
     Texture2D background = LoadTexture("textures/ustawianie_z_siatka.png");
     Texture2D startbattle = LoadTexture("textures/rozpocznij_bitwe.png");
     //tu podmienic na teksturki (Julka)
-    Texture2D wrongshipplacement = LoadTexture("textures/4x1.png");
-    Texture2D notallshipsplaced = LoadTexture("textures/3x1.png");
+    Texture2D wrongshipplacement = LoadTexture("textures/wrongshipplacement.png");
+    Texture2D notallshipsplaced = LoadTexture("textures/notallplaced.png");
     //DrawTexture(background, 0, 0, WHITE);
     //DrawTexture(startbattle, 0, 0, WHITE);
     int gridSize = 10; // Rozmiar planszy
@@ -556,8 +556,8 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
                                 snprintf(label, sizeof(label), "%d", i + 1);
                                 DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
                             }
-                            DrawTexture(wrongshipplacement, gridStartX, gridStartY, WHITE);
-                            DrawText("Statki sa zle ustawione!", SCREENWIDTH / 2 + MeasureText("Statki sa zle ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
+                            DrawTexture(wrongshipplacement, gridStartX, gridStartY + 3 * TILE_SIZE, WHITE);
+                            //DrawText("Statki sa zle ustawione!", SCREENWIDTH / 2 + MeasureText("Statki sa zle ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
                             EndDrawing();
                             double startTime = GetTime();
                             while (GetTime() - startTime < 1.0)
@@ -588,8 +588,8 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
                                 snprintf(label, sizeof(label), "%d", i + 1);
                                 DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
                             }
-                            DrawTexture(notallshipsplaced, gridStartX, gridStartY, WHITE);
-                            DrawText("Nie wszystkie statki sa ustawione!", 3 * SCREENWIDTH / 4 - MeasureText("Nie wszystkie statki sa ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
+                            DrawTexture(notallshipsplaced, gridStartX, gridStartY + 3 * TILE_SIZE, WHITE);
+                            //DrawText("Nie wszystkie statki sa ustawione!", 3 * SCREENWIDTH / 4 - MeasureText("Nie wszystkie statki sa ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
                             EndDrawing();
                             // zamiast usleep użyje funkcji GetTime() z rayliba (jednak jest cos takiego)
                             double startTime = GetTime();
@@ -895,7 +895,7 @@ void placeStatek(board *boardtab, ship *curr_ship, pair begin, int direction) //
 	}
 }
 
-void beingshot(ship* curr_ship,pair paira)
+void beingshot(ship* curr_ship,pair paira, PauseMenu *pauseMenu)
 {
     //Sound scream = LoadSound("Soundeffects/screaming_sinking.wav");
 	for (int i = 0; i < curr_ship->type; i++)
@@ -910,13 +910,13 @@ void beingshot(ship* curr_ship,pair paira)
 	}
     //UnloadSound(scream);
     shoted = LoadSound("Soundeffects/shoted.wav");
-    SetSoundVolume(shoted, 0.5f);//trzeba by było zmodyfikować suwak, pod zmianę dynamiki dźwięku
+    SetSoundVolume(shoted, 0.05f * pauseMenu->all_sound.val * pauseMenu->effects.val);//trzeba by było zmodyfikować suwak, pod zmianę dynamiki dźwięku
     loadshot = 1;
     PlaySound(shoted);
     //UnloadSound(shoted);
 }
 
-void shoot(board *playerBoard, pair shot)
+void shoot(board *playerBoard, pair shot, PauseMenu *pauseMenu)
 {
     int x = shot.x;
     int y = shot.y;
@@ -924,11 +924,11 @@ void shoot(board *playerBoard, pair shot)
     if (playerBoard->BOARD[x][y] != NULL)
 	{
         ship *curr_ship = playerBoard->BOARD[x][y];
-		beingshot(curr_ship,shot);
+		beingshot(curr_ship,shot, pauseMenu);
         return;
     }
     blind = LoadSound("Soundeffects/blind.wav");
-    SetSoundVolume(blind, 0.5f);
+    SetSoundVolume(blind, 0.05f * pauseMenu->all_sound.val * pauseMenu->effects.val);
     loadblind = 1;
     //SetSoundVolume(blind, 1.0f);
     PlaySound(blind);
@@ -1140,13 +1140,16 @@ void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) //fun
         for (int x = 0; x < BOARD_SIZE; x++)
         {
             Rectangle tile = {offsetX + x * TILE_SIZE, offsetY + y * TILE_SIZE, TILE_SIZE, TILE_SIZE}; //deklaracja pola
+            
+            // Draw gradient for blur effect
+            DrawRectangleGradientV(tile.x, tile.y, tile.width, tile.height, Fade(GRAY, 0.6f), Fade(GRAY, 0.3f));
 
             if (playerBoard->BOARD[x][y] == NULL) //jeśli nie ma statku, to rysuj szare linie, pole puste
             {
                 DrawRectangleLines(tile.x, tile.y, tile.width, tile.height, GRAY);
                 if (playerBoard->shots[x][y]) // Check if the tile has been shot
                 {
-                    DrawRectangle(tile.x, tile.y, tile.width, tile.height, LIGHTGRAY); // Color for missed shots
+                    DrawRectangle(tile.x, tile.y, tile.width, tile.height, Fade(LIGHTGRAY, 0.75f)); // Color for missed shots
                 }
                 
             }
@@ -1188,23 +1191,7 @@ void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) //fun
     }
 };
 
-/* pair AITurn(board *playerBoard) //losuje do skutku, dopóki nie trafi w puste pole (mogę później zoptymalizować losowanie, ale na razie wystarcza)
-{
-    while (true)
-    {
-        int x = GetRandomValue(0, BOARD_SIZE - 1);
-        int y = GetRandomValue(0, BOARD_SIZE - 1);
-        pair shot = {x, y};
-
-        if (!playerBoard->shots[x][y])
-        {
-            shoot(playerBoard, shot);
-            return shot;
-        }
-    }
-}; */
-
-pair AITurn(board *playerBoard) // losuje do skutku, dopóki nie trafi w puste pole (mogę później zoptymalizować losowanie, ale na razie wystarcza)
+pair AITurn(board *playerBoard, PauseMenu *pauseMenu) // losuje do skutku, dopóki nie trafi w puste pole (mogę później zoptymalizować losowanie, ale na razie wystarcza)
 {
     static int lastHitX = -1;
     static int lastHitY = -1;
@@ -1270,7 +1257,7 @@ pair AITurn(board *playerBoard) // losuje do skutku, dopóki nie trafi w puste p
             // Check if the coordinates are within bounds and not already shot
             if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && !playerBoard->shots[x][y])
             {
-                shoot(playerBoard, (pair){x, y});
+                shoot(playerBoard, (pair){x, y}, pauseMenu);
                 if (playerBoard->BOARD[x][y] != NULL)
                 {
                     lastHitX = x;
@@ -1341,7 +1328,7 @@ pair AITurn(board *playerBoard) // losuje do skutku, dopóki nie trafi w puste p
 
             if (!playerBoard->shots[x][y])
             {
-                shoot(playerBoard, (pair){x, y});
+                shoot(playerBoard, (pair){x, y}, pauseMenu);
                 if (playerBoard->BOARD[x][y] != NULL)
                 {
                     lastHitX = x;
@@ -1512,9 +1499,9 @@ board* init_ai_ships(){
     return k;
 }
 
-void scream(){
+void scream(PauseMenu *pauseMenu){
     scr = LoadSound("Soundeffects/screaming_sinking.wav");
-    SetSoundVolume(scr, 0.5f);
+    SetSoundVolume(scr, 0.05f * pauseMenu->all_sound.val * pauseMenu->effects.val);
     loadscr = 1;
     PlaySound(scr);
 }
@@ -1539,8 +1526,18 @@ void FreeSounds(){
 void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip, PauseMenu *pauseMenu) {
     SetExitKey(0);
     Music sos = LoadMusicStream("music/SOS_Signal.ogg");
-    Texture2D playAgainTexture = LoadTexture("textures/zagraj_ponownie.png");
-    Texture2D closeTexture = LoadTexture("textures/wyjdz.png");
+    bool texture=false;
+    Texture2D playAgainTexture, closeTexture, backgroundTexture, win, lose;
+    if(!texture)
+    {
+         playAgainTexture = LoadTexture("textures/zagraj_ponownie.png");
+     closeTexture = LoadTexture("textures/wyjdz.png");
+     backgroundTexture = LoadTexture("textures/statektlo.png");
+     win = LoadTexture("Napisy/wygrywasz.png");
+     lose = LoadTexture("Napisy/przegrywasz.png");
+    texture=true;
+
+    }
     sos.looping = true;
     PlayMusicStream(sos);
     int playerOffsetX = (SCREENWIDTH * 1/3)-20 - (BOARD_SIZE * TILE_SIZE) / 2;
@@ -1554,7 +1551,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
 
     for (int alpha = 255; alpha >= 0; alpha -= 5) {
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        DrawTexture(backgroundTexture, 0, 0, WHITE);
         DrawText("Twoja plansza", playerOffsetX, playerOffsetY - 30, 20, BLACK);
         DrawBoard(playerBoard, playerOffsetX, playerOffsetY, false);
 
@@ -1581,7 +1578,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
         SetMusicVolume(sos, 0.33f*pauseMenu->all_sound.val * pauseMenu->music.val);
         UpdateMusicStream(sos);
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        DrawTexture(backgroundTexture, 0, 0, WHITE);
 
         if (IsKeyPressed(KEY_ESCAPE)) {
             if (gameState != GAME_PAUSED) {
@@ -1622,8 +1619,8 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                         pair shot = {x, y};
                         if (!enemyBoard->shots[x][y]) //jeśli pole puste lub niezestrzelone, to strzelaj
                         {
-                            shoot(enemyBoard, shot);
-                            snprintf(message, sizeof(message), "Gracz strzelił w (%d, %d)", x, y);
+                            shoot(enemyBoard, shot, pauseMenu);
+                            snprintf(message, sizeof(message), "Gracz strzelil w (%d, %d)", x, y);
                             if (enemyBoard->BOARD[x][y] != NULL) {
                                 ship *currShip = enemyBoard->BOARD[x][y];
                                 bool sunk = true;
@@ -1634,8 +1631,8 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                                     }
                                 }
                                 if (sunk) {
-                                    scream();
-                                    snprintf(message, sizeof(message), "Gracz zatopił statek!");
+                                    scream(pauseMenu);
+                                    snprintf(message, sizeof(message), "Gracz zatopil statek!");
                                 }
                             } else {
                                 playerTurn = false; // Tylko jeśli gracz nie trafi, zmienia się tura
@@ -1644,7 +1641,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                             while (GetTime() - startTime < 1.0) {
                                 UpdateMusicStream(sos); // Utrzymuje działanie muzyki w tle
                                 BeginDrawing();
-                                ClearBackground(RAYWHITE);
+                                DrawTexture(backgroundTexture, 0, 0, WHITE);
 
                                 DrawText("Twoja plansza", playerOffsetX, playerOffsetY - 30, 20, BLACK);
                                 DrawBoard(playerBoard, playerOffsetX, playerOffsetY, false);
@@ -1652,17 +1649,17 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                                 DrawText("Plansza przeciwnika", enemyOffsetX, enemyOffsetY - 30, 20, BLACK);
                                 DrawBoard(enemyBoard, enemyOffsetX, enemyOffsetY, true);
 
-                                DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
+                                DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, WHITE);
 
                                 EndDrawing();
                             }
                         } else {
-                            snprintf(message, sizeof(message), "Strzelałeś już tutaj!");
+                            snprintf(message, sizeof(message), "Strzelales juz tutaj!");
                         }
                     }
                 }
             } else {
-                pair shot = AITurn(playerBoard);
+                pair shot = AITurn(playerBoard, pauseMenu);
                 snprintf(message, sizeof(message), "Przeciwnik strzela w (%d, %d)", (int)shot.x + 1, (int)shot.y + 1);
 
                 int shotX = (int)shot.x;
@@ -1679,9 +1676,9 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                             }
                         }
                         if (sunk) {
-                            scream();
+                            scream(pauseMenu);
                             //tutaj wstawimy dźwięk zatapiania
-                            snprintf(message, sizeof(message), "Przeciwnik zatopił Twój statek!");
+                            snprintf(message, sizeof(message), "Przeciwnik zatopil Twoj statek!");
                         }
                     } else {
                         playerTurn = true; // Tylko jeśli przeciwnik nie trafi, zmienia się tura
@@ -1692,7 +1689,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                 while (GetTime() - startTime < 1.0) {
                     UpdateMusicStream(sos); // Utrzymuje działanie muzyki w tle
                     BeginDrawing();
-                    ClearBackground(RAYWHITE);
+                    DrawTexture(backgroundTexture, 0, 0, WHITE);
 
                     DrawText("Twoja plansza", playerOffsetX, playerOffsetY - 30, 20, BLACK);
                     DrawBoard(playerBoard, playerOffsetX, playerOffsetY, false);
@@ -1700,7 +1697,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                     DrawText("Plansza przeciwnika", enemyOffsetX, enemyOffsetY - 30, 20, BLACK);
                     DrawBoard(enemyBoard, enemyOffsetX, enemyOffsetY, true);
 
-                    DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
+                    DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, WHITE);
 
                     EndDrawing();
                 }
@@ -1722,9 +1719,9 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
             }
         } else {
             if (gameState == GAME_PLAYER1_WON) {
-                DrawText("Wygrywasz!", SCREENWIDTH / 2 - MeasureText("Wygrywasz!", 40) / 2, SCREENHEIGHT / 2 - 20, 40, GREEN);
+                DrawTexture(win, (SCREENWIDTH - win.width) / 2, (SCREENHEIGHT - win.height) / 2, WHITE);
             } else if (gameState == GAME_AI_WON) {
-                DrawText("Przegrywasz!", SCREENWIDTH / 2 - MeasureText("Przegrywasz!", 40) / 2, SCREENHEIGHT / 2 - 20, 40, RED);
+                DrawTexture(lose, (SCREENWIDTH - lose.width) / 2, (SCREENHEIGHT - lose.height) / 2, WHITE);
             }
                 Rectangle playAgainButton = { SCREENWIDTH / 2 - 150, SCREENHEIGHT / 2 + 50, 300, 50 };
                 Rectangle closeButton = { SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 120, 200, 50 };
@@ -1772,8 +1769,11 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
 
         EndDrawing();
     }
+    UnloadTexture(win);
+    UnloadTexture(lose);
     UnloadTexture(playAgainTexture);
     UnloadTexture(closeTexture);
+    UnloadTexture(backgroundTexture);
     StopMusicStream(sos);
     if (pauseMenu->toMainMenu){
         NewGame(pauseMenu);
@@ -1789,6 +1789,9 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
     Texture2D newTurnTexture = LoadTexture("textures/nowa_tura.png");
     Texture2D playAgainTexture = LoadTexture("textures/zagraj_ponownie.png");
     Texture2D closeTexture = LoadTexture("textures/wyjdz.png");
+    Texture2D backgroundTexture = LoadTexture("textures/statektlo.png");
+    Texture2D player_1_win = LoadTexture("Napisy/gracz_1_wygrywa.png");
+    Texture2D player_2_win = LoadTexture("Napisy/gracz_2_wygrywa.png");
     sos.looping = true;
     PlayMusicStream(sos);
     SetMusicVolume(sos, 0.33f*pauseMenu->all_sound.val * pauseMenu->music.val);
@@ -1804,7 +1807,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
 
     for (int alpha = 255; alpha >= 0; alpha -= 5) {
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        DrawTexture(backgroundTexture, 0, 0, WHITE);
         DrawText("Gracz 1:", player1OffsetX, player1OffsetY - 30, 20, BLACK);
         DrawBoard(player1Board, player1OffsetX, player1OffsetY, true);
 
@@ -1830,7 +1833,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
         SetMusicVolume(sos, 0.33f*pauseMenu->all_sound.val * pauseMenu->music.val);
         UpdateMusicStream(sos);
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        DrawTexture(backgroundTexture, 0, 0, WHITE);
 
         if (IsKeyPressed(KEY_ESCAPE)) {
             if (gameState != GAME_PAUSED) {
@@ -1852,7 +1855,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
         if (gameState == GAME_RUNNING) {
             if (turnEnded) { // Wyświetlanie przycisku do zmiany tury, tak aby gracze nie widzieli plansz przeciwnika
                 BeginDrawing();
-                ClearBackground(RAYWHITE);
+                DrawTexture(backgroundTexture, 0, 0, WHITE);
 
                 Rectangle newTurnButton = { SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 50, 200, 50 };
 
@@ -1895,7 +1898,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                             if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
                                 pair shot = {x, y};
                                 if (!player2Board->shots[x][y]) {
-                                    shoot(player2Board, shot);
+                                    shoot(player2Board, shot, pauseMenu);
                                     snprintf(message, sizeof(message), "Gracz 1 strzelił w (%d, %d)", x, y);
                                     if (player2Board->BOARD[x][y] != NULL) {
                                         ship *currShip = player2Board->BOARD[x][y];
@@ -1907,7 +1910,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                             }
                                         }
                                         if (sunk) {
-                                            scream();
+                                            scream(pauseMenu);
                                             snprintf(message, sizeof(message), "Gracz 1 zatopił statek!");
                                         }
                                     } else {
@@ -1917,7 +1920,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                     while (GetTime() - startTime < 1.0) {
                                         UpdateMusicStream(sos);
                                         BeginDrawing();
-                                        ClearBackground(RAYWHITE);
+                                        DrawTexture(backgroundTexture, 0, 0, WHITE);
 
                                         DrawText("Gracz 1: Twoja plansza", player1OffsetX, player1OffsetY - 30, 20, BLACK);
                                         DrawBoard(player1Board, player1OffsetX, player1OffsetY, false);
@@ -1955,7 +1958,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                             if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
                                 pair shot = {x, y};
                                 if (!player1Board->shots[x][y]) {
-                                    shoot(player1Board, shot);
+                                    shoot(player1Board, shot, pauseMenu);
                                     snprintf(message, sizeof(message), "Gracz 2 strzelił w (%d, %d)", x, y);
                                     if (player1Board->BOARD[x][y] != NULL) {
                                         ship *currShip = player1Board->BOARD[x][y];
@@ -1967,7 +1970,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                             }
                                         }
                                         if (sunk) {
-                                            scream();
+                                            scream(pauseMenu);
                                             snprintf(message, sizeof(message), "Gracz 2 zatopił statek!");
                                         }
                                     } else {
@@ -1977,7 +1980,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                     while (GetTime() - startTime < 1.0) {
                                         UpdateMusicStream(sos);
                                         BeginDrawing();
-                                        ClearBackground(RAYWHITE);
+                                        DrawTexture(backgroundTexture, 0, 0, WHITE);
 
                                         DrawText("Gracz 2: Twoja plansza", player2OffsetX, player2OffsetY - 30, 20, BLACK);
                                         DrawBoard(player2Board, player2OffsetX, player2OffsetY, false);
@@ -2013,10 +2016,10 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
             }
         } else {
             // Wyświetlenie wyniku gry
-            if (gameState == GAME_PLAYER1_WON) {
-                DrawText("Gracz 1 Wygrywa!", SCREENWIDTH / 2 - MeasureText("Gracz 1 Wygrywa!", 40) / 2, SCREENHEIGHT / 2 - 20, 40, GREEN);
-            } else if (gameState == GAME_PLAYER2_WON) {
-                DrawText("Gracz 2 Wygrywa!", SCREENWIDTH / 2 - MeasureText("Gracz 2 Wygrywa!", 40) / 2, SCREENHEIGHT / 2 - 20, 40, GREEN);
+            if (gameState == GAME_PLAYER2_WON) {
+                DrawTexture(player_1_win, (SCREENWIDTH - player_1_win.width) / 2, (SCREENHEIGHT - player_1_win.height) / 2, WHITE);
+            } else if (gameState == GAME_PLAYER1_WON) {
+                DrawTexture(player_2_win, (SCREENWIDTH - player_2_win.width) / 2, (SCREENHEIGHT - player_2_win.height) / 2, WHITE);
             }
 
                 Rectangle playAgainButton = { SCREENWIDTH / 2 - 150, SCREENHEIGHT / 2 + 50, 300, 50 };
@@ -2066,9 +2069,12 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
 
         EndDrawing();
     }
+    UnloadTexture(player_1_win);
+    UnloadTexture(player_2_win);
     UnloadTexture(newTurnTexture);
     UnloadTexture(playAgainTexture);
     UnloadTexture(closeTexture);
+    UnloadTexture(backgroundTexture);
     StopMusicStream(sos);
 
     if (pauseMenu->toMainMenu){
@@ -2238,11 +2244,11 @@ PauseMenu* InitPauseMenu(){
     pm->toMainMenu = false;
     pm->blur = (Color){0, 0, 0, 128};
     pm->background = LoadTexture("textures/ustawianie_bez_siatki.png");
-    pm->back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4 * 3, "textures/3x1.png", "Powrót", 40);
-    pm->volume = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 2, "textures/3x1.png", "Glosnosc", 40);
-    pm->menu = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4, "textures/3x1.png", "Menu Glowne", 40);
+    pm->back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4 * 3, "textures/powrot.png", "", 40);
+    pm->volume = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 2, "textures/glosnosc.png", "", 40);
+    pm->menu = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4, "textures/menu_glowne.png", "", 40);
 
-    pm->sound_back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 6*5, "textures/3x1.png", "Powrót", 40);
+    pm->sound_back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 6*5, "textures/powrot.png", "", 40);
     pm->all_sound = InitSlider(SCREENHEIGHT / 6, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
     pm->music = InitSlider(SCREENHEIGHT / 3 + 40, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
     pm->effects = InitSlider(SCREENHEIGHT / 2 + 80, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
@@ -2254,7 +2260,15 @@ PauseMenu* InitPauseMenu(){
 void UpdatePauseMenu(PauseMenu *pm){
     DrawTexture(pm->background, 0, 0, WHITE);
     DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, pm->blur);
-
+    static Texture2D wszystkie, muzyka, efekty;
+    static bool texture=false;
+    if(!texture)
+    {   
+        wszystkie = LoadTexture("Napisy/wszystkie.png");
+        muzyka = LoadTexture("Napisy/muzyka.png");
+        efekty = LoadTexture("Napisy/efekty.png");
+        texture=true;
+    }
     if(pm->isGeneral){
         UpdateButton(&pm->back);
         UpdateButton(&pm->volume);
@@ -2278,6 +2292,9 @@ void UpdatePauseMenu(PauseMenu *pm){
     }
 
     else {
+        DrawTexture(wszystkie, SCREENWIDTH / 2 - wszystkie.width/2, SCREENHEIGHT / 6 + (60 - wszystkie.height) / 2 - 60, WHITE);
+        DrawTexture(muzyka, SCREENWIDTH / 2 - muzyka.width/2, SCREENHEIGHT / 3 + 40 + (60 - muzyka.height) / 2 - 60, WHITE);
+        DrawTexture(efekty, SCREENWIDTH / 2 -efekty.width/2, SCREENHEIGHT / 2 + 80 + (60 - efekty.height) / 2 - 60, WHITE);
         UpdateButton(&pm->sound_back);
         UpdateSlider(&pm->all_sound, pm);
         UpdateSlider(&pm->music, pm);
@@ -2318,7 +2335,7 @@ GameState PreGame(PauseMenu *pauseMenu)
     Texture2D titleTexture = LoadTexture("Napisy/tytul.png");
     Texture2D onePlayerTexture = LoadTexture("Napisy/jedengracz.png");
     Texture2D twoPlayersTexture = LoadTexture("Napisy/dwochgraczy.png");
-    Texture2D backgroundTexture = LoadTexture("Napisy/tlo.png");
+    Texture2D backgroundTexture = LoadTexture("textures/statektlo.png");
     Texture2D buttonTexture = LoadTexture("Napisy/przycisk.png");
     Texture2D soundSettingsTexture = LoadTexture("Napisy/glosnosc.png");
 
@@ -2330,7 +2347,7 @@ GameState PreGame(PauseMenu *pauseMenu)
         BeginDrawing();
 
         if(gameState == GAME_START){
-            DrawTexture(backgroundTexture, -20, -20, WHITE);
+            DrawTexture(backgroundTexture, 0, 0, WHITE);
 
             // Skalowanie i rysowanie tytułu gry
             float titleScale = 1.5f; // Skala tytułu
