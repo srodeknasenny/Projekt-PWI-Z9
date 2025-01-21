@@ -1326,6 +1326,41 @@ pair AITurn(board *playerBoard, PauseMenu *pauseMenu) // losuje do skutku, dopó
             x = GetRandomValue(0, BOARD_SIZE - 1);
             y = GetRandomValue(0, BOARD_SIZE - 1);
 
+            bool adjacentToSunkenShip = false;
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    int adjX = x + dx;
+                    int adjY = y + dy;
+                    if (adjX >= 0 && adjX < BOARD_SIZE && adjY >= 0 && adjY < BOARD_SIZE)
+                    {
+                        if (playerBoard->BOARD[adjX][adjY] != NULL)
+                        {
+                            ship *adjShip = playerBoard->BOARD[adjX][adjY];
+                            bool isSunken = true;
+                            for (int i = 0; i < adjShip->type; i++)
+                            {
+                                if (!adjShip->boardplace[i].got_shot)
+                                {
+                                    isSunken = false;
+                                    break;
+                                }
+                            }
+                            if (isSunken)
+                            {
+                                adjacentToSunkenShip = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (adjacentToSunkenShip)
+                    break;
+            }
+            if (adjacentToSunkenShip)
+                continue;
+
             if (!playerBoard->shots[x][y])
             {
                 shoot(playerBoard, (pair){x, y}, pauseMenu);
