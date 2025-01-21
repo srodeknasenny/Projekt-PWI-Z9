@@ -1188,20 +1188,171 @@ void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) //fun
     }
 };
 
-pair AITurn(board *playerBoard) //losuje do skutku, dopóki nie trafi w puste pole (mogę później zoptymalizować losowanie, ale na razie wystarcza)
+/* pair AITurn(board *playerBoard) //losuje do skutku, dopóki nie trafi w puste pole (mogę później zoptymalizować losowanie, ale na razie wystarcza)
 {
     while (true)
     {
         int x = GetRandomValue(0, BOARD_SIZE - 1);
         int y = GetRandomValue(0, BOARD_SIZE - 1);
         pair shot = {x, y};
+
         if (!playerBoard->shots[x][y])
         {
             shoot(playerBoard, shot);
             return shot;
         }
     }
-};
+}; */
+
+pair AITurn(board *playerBoard) // losuje do skutku, dopóki nie trafi w puste pole (mogę później zoptymalizować losowanie, ale na razie wystarcza)
+{
+    static int lastHitX = -1;
+    static int lastHitY = -1;
+    static int direction = 0; // 0: up, 1: right, 2: down, 3: left
+
+    while (true)
+    {
+        int x, y;
+
+        TraceLog(LOG_INFO, "Last hit: (%d, %d)", lastHitX, lastHitY);
+
+        if (lastHitX >= 0 && lastHitX < BOARD_SIZE && lastHitY >= 0 && lastHitY < BOARD_SIZE) // Check if the last hit destroyed a ship
+        {
+            ship *lastShip = playerBoard->BOARD[lastHitX][lastHitY];
+            if (lastShip != NULL)
+            {
+                TraceLog(LOG_INFO, "Last ship type: %d", lastShip->type);
+                bool destroyed = true;
+                for (int i = 0; i < lastShip->type; i++)
+                {
+                    TraceLog(LOG_INFO, "(%d, %d)", (int)lastShip->boardplace[i].cords.x, (int)lastShip->boardplace[i].cords.y);
+                    if (lastShip->boardplace[i].got_shot == 0)
+                    {
+                        destroyed = false;
+                        break;
+                    }
+                }
+
+                if (destroyed)
+                {
+                    TraceLog(LOG_INFO, "Ship was destroyed");
+                    lastHitX = -1;
+                    lastHitY = -1;
+                    direction = 0;
+                }
+            }
+        }
+
+        if (lastHitX != -1 && lastHitY != -1)
+        {
+            TraceLog(LOG_INFO, "Ship was not destroyed");
+            // Try to continue in the same direction
+            switch (direction)
+            {
+            case 0:
+                x = lastHitX;
+                y = lastHitY - 1;
+                break;
+            case 1:
+                x = lastHitX + 1;
+                y = lastHitY;
+                break;
+            case 2:
+                x = lastHitX;
+                y = lastHitY + 1;
+                break;
+            case 3:
+                x = lastHitX - 1;
+                y = lastHitY;
+                break;
+            }
+
+            // Check if the coordinates are within bounds and not already shot
+            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && !playerBoard->shots[x][y])
+            {
+                shoot(playerBoard, (pair){x, y});
+                if (playerBoard->BOARD[x][y] != NULL)
+                {
+                    lastHitX = x;
+                    lastHitY = y;
+
+                    int nextX, nextY;
+                    switch (direction)
+                    {
+                    case 0:
+                        nextX = lastHitX;
+                        nextY = lastHitY - 1;
+                        break;
+                    case 1:
+                        nextX = lastHitX + 1;
+                        nextY = lastHitY;
+                        break;
+                    case 2:
+                        nextX = lastHitX;
+                        nextY = lastHitY + 1;
+                        break;
+                    case 3:
+                        nextX = lastHitX - 1;
+                        nextY = lastHitY;
+                        break;
+                    }
+
+                    if (nextX < 0 || nextX >= BOARD_SIZE || nextY < 0 || nextY >= BOARD_SIZE || playerBoard->shots[nextX][nextY])
+                    {
+                        direction = (direction + 2) % 4; // Change direction
+
+                        switch (direction)
+                        {
+                        case 0:
+                            lastHitX = lastHitX;
+                            lastHitY = lastHitY - 1;
+                            break;
+                        case 1:
+                            lastHitX = lastHitX + 1;
+                            lastHitY = lastHitY;
+                            break;
+                        case 2:
+                            lastHitX = lastHitX;
+                            lastHitY = lastHitY + 1;
+                            break;
+                        case 3:
+                            lastHitX = lastHitX - 1;
+                            lastHitY = lastHitY;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    direction = (direction + 1) % 4; // Change direction
+                }
+                return (pair){x, y};
+            }
+            else
+            {
+                direction = (direction + 1) % 4; // Change direction
+            }
+        }
+        else
+        {
+            // Random guess
+            x = GetRandomValue(0, BOARD_SIZE - 1);
+            y = GetRandomValue(0, BOARD_SIZE - 1);
+
+            if (!playerBoard->shots[x][y])
+            {
+                shoot(playerBoard, (pair){x, y});
+                if (playerBoard->BOARD[x][y] != NULL)
+                {
+                    lastHitX = x;
+                    lastHitY = y;
+                    direction = 0; // Reset direction
+                }
+                return (pair){x, y};
+            }
+        }
+    }
+}
 
 bool CheckWinCondition(board *playerBoard) //czy wszystkie statki zostały zestrzelone
 {
