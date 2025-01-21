@@ -1255,65 +1255,41 @@ pair AITurn(board *playerBoard, PauseMenu *pauseMenu) // losuje do skutku, dopó
             }
 
             // Check if the coordinates are within bounds and not already shot
-            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && !playerBoard->shots[x][y])
+            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && !playerBoard->shots[x][y]) // Check if the shot is within bounds and the cell has not been shot yet
             {
                 shoot(playerBoard, (pair){x, y}, pauseMenu);
-                if (playerBoard->BOARD[x][y] != NULL)
+                if (playerBoard->BOARD[x][y] != NULL) // Check if the shot hit a ship
                 {
                     lastHitX = x;
                     lastHitY = y;
-
-                    int nextX, nextY;
-                    switch (direction)
-                    {
-                    case 0:
-                        nextX = lastHitX;
-                        nextY = lastHitY - 1;
-                        break;
-                    case 1:
-                        nextX = lastHitX + 1;
-                        nextY = lastHitY;
-                        break;
-                    case 2:
-                        nextX = lastHitX;
-                        nextY = lastHitY + 1;
-                        break;
-                    case 3:
-                        nextX = lastHitX - 1;
-                        nextY = lastHitY;
-                        break;
-                    }
-
-                    if (nextX < 0 || nextX >= BOARD_SIZE || nextY < 0 || nextY >= BOARD_SIZE || playerBoard->shots[nextX][nextY])
-                    {
-                        direction = (direction + 2) % 4; // Change direction
-
-                        switch (direction)
-                        {
-                        case 0:
-                            lastHitX = lastHitX;
-                            lastHitY = lastHitY - 1;
-                            break;
-                        case 1:
-                            lastHitX = lastHitX + 1;
-                            lastHitY = lastHitY;
-                            break;
-                        case 2:
-                            lastHitX = lastHitX;
-                            lastHitY = lastHitY + 1;
-                            break;
-                        case 3:
-                            lastHitX = lastHitX - 1;
-                            lastHitY = lastHitY;
-                            break;
-                        }
-                    }
                 }
                 else
                 {
                     direction = (direction + 1) % 4; // Change direction
                 }
                 return (pair){x, y};
+            }
+            else if(x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && playerBoard->shots[x][y] && playerBoard->BOARD[x][y] != NULL) // Check if the shot is within bounds and the cell has been shot, but the cell has a ship
+            {
+                switch (direction)
+                {
+                case 0:
+                    lastHitX = lastHitX;
+                    lastHitY = lastHitY - 1;
+                    break;
+                case 1:
+                    lastHitX = lastHitX + 1;
+                    lastHitY = lastHitY;
+                    break;
+                case 2:
+                    lastHitX = lastHitX;
+                    lastHitY = lastHitY + 1;
+                    break;
+                case 3:
+                    lastHitX = lastHitX - 1;
+                    lastHitY = lastHitY;
+                    break;
+                }
             }
             else
             {
