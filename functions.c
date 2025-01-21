@@ -236,6 +236,9 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
 
     Texture2D background = LoadTexture("textures/ustawianie_z_siatka.png");
     Texture2D startbattle = LoadTexture("textures/rozpocznij_bitwe.png");
+    //tu podmienic na teksturki (Julka)
+    Texture2D wrongshipplacement = LoadTexture("textures/4x1.png");
+    Texture2D notallshipsplaced = LoadTexture("textures/3x1.png");
     //DrawTexture(background, 0, 0, WHITE);
     //DrawTexture(startbattle, 0, 0, WHITE);
     int gridSize = 10; // Rozmiar planszy
@@ -502,11 +505,11 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
                         DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, (Color){0, 0, 0, alpha});
                         //napis nad planszą
                         if(mainGameState == GAME_START)
-                            DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 20) / 2, gridStartY - 50, 20, BLACK);
+                            DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 30) / 2, gridStartY - 90, 30, BLACK);
                         else if(mainGameState == GAME_PREPARE1)
-                            DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 20) / 2, gridStartY - 50, 20, BLACK);
+                            DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 30) / 2, gridStartY - 90, 30, BLACK);
                         else if(mainGameState == GAME_PREPARE2)
-                            DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 20) / 2, gridStartY - 50, 20, BLACK);
+                            DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 30) / 2, gridStartY - 90, 30, BLACK);
 
                         for (int i = 0; i < gridSize; i++)
                         {
@@ -539,7 +542,21 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
                             allShipsPlaced = false;
                             ClearBackground(RAYWHITE);
                             BeginDrawing();
-                            DrawRectangle(SCREENWIDTH / 2, SCREENHEIGHT / 4, SCREENWIDTH / 2, SCREENHEIGHT / 2, RED);
+                            if(mainGameState == GAME_START)
+                                DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 30) / 2, gridStartY - 90, 30, BLACK);
+                            else if(mainGameState == GAME_PREPARE1)
+                                DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 30) / 2, gridStartY - 90, 30, BLACK);
+                            else if(mainGameState == GAME_PREPARE2)
+                                DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 30) / 2, gridStartY - 90, 30, BLACK);
+                            for (int i = 0; i < gridSize; i++)
+                            {
+                                char label[3]; // Increased size to accommodate two-digit numbers
+                                snprintf(label, sizeof(label), "%c", 'A' + i);
+                                DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
+                                snprintf(label, sizeof(label), "%d", i + 1);
+                                DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
+                            }
+                            DrawTexture(wrongshipplacement, gridStartX, gridStartY, WHITE);
                             DrawText("Statki sa zle ustawione!", SCREENWIDTH / 2 + MeasureText("Statki sa zle ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
                             EndDrawing();
                             double startTime = GetTime();
@@ -557,7 +574,21 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
                             allShipsPlaced = false;
                             ClearBackground(RAYWHITE);
                             BeginDrawing();
-                            DrawRectangle(SCREENWIDTH / 2, SCREENHEIGHT / 4, SCREENWIDTH / 2, SCREENHEIGHT / 2, BLUE);
+                            if(mainGameState == GAME_START)
+                                DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 30) / 2, gridStartY - 90, 30, BLACK);
+                            else if(mainGameState == GAME_PREPARE1)
+                                DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 30) / 2, gridStartY - 90, 30, BLACK);
+                            else if(mainGameState == GAME_PREPARE2)
+                                DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 30) / 2, gridStartY - 90, 30, BLACK);
+                            for (int i = 0; i < gridSize; i++)
+                            {
+                                char label[3]; // Increased size to accommodate two-digit numbers
+                                snprintf(label, sizeof(label), "%c", 'A' + i);
+                                DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
+                                snprintf(label, sizeof(label), "%d", i + 1);
+                                DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
+                            }
+                            DrawTexture(notallshipsplaced, gridStartX, gridStartY, WHITE);
                             DrawText("Nie wszystkie statki sa ustawione!", 3 * SCREENWIDTH / 4 - MeasureText("Nie wszystkie statki sa ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
                             EndDrawing();
                             // zamiast usleep użyje funkcji GetTime() z rayliba (jednak jest cos takiego)
@@ -580,11 +611,11 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
                             DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, (Color){0, 0, 0, alpha});
                             //napis nad planszą
                             if(mainGameState == GAME_START)
-                                DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 20) / 2, gridStartY - 50, 20, BLACK);
+                                DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 30) / 2, gridStartY - 90, 30, BLACK);
                             else if(mainGameState == GAME_PREPARE1)
-                                DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 20) / 2, gridStartY - 50, 20, BLACK);
+                                DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 30) / 2, gridStartY - 90, 30, BLACK);
                             else if(mainGameState == GAME_PREPARE2)
-                                DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 20) / 2, gridStartY - 50, 20, BLACK);
+                                DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 30) / 2, gridStartY - 90, 30, BLACK);
 
                             for (int i = 0; i < gridSize; i++)
                             {
@@ -614,11 +645,11 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
                 }
                 //napis nad planszą
                 if(mainGameState == GAME_START)
-                    DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 20) / 2, gridStartY - 50, 20, BLACK);
+                    DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 30) / 2, gridStartY - 90, 30, BLACK);
                 else if(mainGameState == GAME_PREPARE1)
-                    DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 20) / 2, gridStartY - 50, 20, BLACK);
+                    DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 30) / 2, gridStartY - 90, 30, BLACK);
                 else if(mainGameState == GAME_PREPARE2)
-                    DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 20) / 2, gridStartY - 50, 20, BLACK);
+                    DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 30) / 2, gridStartY - 90, 30, BLACK);
 
                 for (int i = 0; i < gridSize; i++)
                 {
@@ -2062,8 +2093,8 @@ PauseMenu* InitPauseMenu(){
 
     pm->sound_back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 6*5, "textures/3x1.png", "Powrót", 40);
     pm->all_sound = InitSlider(SCREENHEIGHT / 6, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
-    pm->music = InitSlider(SCREENHEIGHT / 3, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
-    pm->effects = InitSlider(SCREENHEIGHT / 2, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
+    pm->music = InitSlider(SCREENHEIGHT / 3 + 40, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
+    pm->effects = InitSlider(SCREENHEIGHT / 2 + 80, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
 
     return pm;
 }

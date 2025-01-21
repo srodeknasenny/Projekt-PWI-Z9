@@ -7,7 +7,7 @@
 int main()
 {
     InitAudioDevice(); 
-    InitWindow(SCREENWIDTH, SCREENHEIGHT, "The Statki Game");
+    InitWindow(SCREENWIDTH, SCREENHEIGHT, "Pirackie Starcie");
     SetTargetFPS(60);
 
     PauseMenu *pauseMenu = InitPauseMenu();
