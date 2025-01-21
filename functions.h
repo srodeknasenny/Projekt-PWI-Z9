@@ -13,13 +13,13 @@ void SnapToGrid(struct ship *s, int gridStartX, int gridStartY); // przypisuje s
 void PrintShipPositions(struct ship *);                          // funkcja pomocnicza do wypisywania koordynatóœ statku
 void CheckShipPlacement(struct ship *ships);                     // sprawdza czy statek jest ustawiony zgodnie z zasadami gry
 GameData* GameSet(GameState gameState, PauseMenu *pauseMenu);                           // uruchamia ustawianie statków
-void scream();//wywołuje dźwięk zatapiania
+void scream(PauseMenu *pauseMenu);//wywołuje dźwięk zatapiania
 void FreeSounds();
 /*plansza i interakcja z plansza*/
 board *initboard();
 void delboard(board *boardtab);
 void placeStatek(board *board, ship *curr_ship, pair begin, int direction);
-void shoot(board *player, pair pairA);                                 // wymaga poprawnie zainicjowanego statku zeby dzialalo, a wiec potrzeba inicjatora
+void shoot(board *player, pair pairA, PauseMenu *pauseMenu);                                 // wymaga poprawnie zainicjowanego statku zeby dzialalo, a wiec potrzeba inicjatora
 void printboard(board *boardtab);                                      // funkcja rysuje tablice danego gracza. Na razie drukuje tylko tile'a (funkcja potencjalnie do wymiany)
 struct array_cordinals *Get_array_cordinals(int offsetX, int offsetY); // przekształca położenie myszki na położenie statku na planszy
 

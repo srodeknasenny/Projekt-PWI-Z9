@@ -895,7 +895,7 @@ void placeStatek(board *boardtab, ship *curr_ship, pair begin, int direction) //
 	}
 }
 
-void beingshot(ship* curr_ship,pair paira)
+void beingshot(ship* curr_ship,pair paira, PauseMenu *pauseMenu)
 {
     //Sound scream = LoadSound("Soundeffects/screaming_sinking.wav");
 	for (int i = 0; i < curr_ship->type; i++)
@@ -910,13 +910,13 @@ void beingshot(ship* curr_ship,pair paira)
 	}
     //UnloadSound(scream);
     shoted = LoadSound("Soundeffects/shoted.wav");
-    SetSoundVolume(shoted, 0.5f);//trzeba by było zmodyfikować suwak, pod zmianę dynamiki dźwięku
+    SetSoundVolume(shoted, 0.05f * pauseMenu->all_sound.val * pauseMenu->effects.val);//trzeba by było zmodyfikować suwak, pod zmianę dynamiki dźwięku
     loadshot = 1;
     PlaySound(shoted);
     //UnloadSound(shoted);
 }
 
-void shoot(board *playerBoard, pair shot)
+void shoot(board *playerBoard, pair shot, PauseMenu *pauseMenu)
 {
     int x = shot.x;
     int y = shot.y;
@@ -924,11 +924,11 @@ void shoot(board *playerBoard, pair shot)
     if (playerBoard->BOARD[x][y] != NULL)
 	{
         ship *curr_ship = playerBoard->BOARD[x][y];
-		beingshot(curr_ship,shot);
+		beingshot(curr_ship,shot, pauseMenu);
         return;
     }
     blind = LoadSound("Soundeffects/blind.wav");
-    SetSoundVolume(blind, 0.5f);
+    SetSoundVolume(blind, 0.05f * pauseMenu->all_sound.val * pauseMenu->effects.val);
     loadblind = 1;
     //SetSoundVolume(blind, 1.0f);
     PlaySound(blind);
@@ -1191,7 +1191,7 @@ void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) //fun
     }
 };
 
-pair AITurn(board *playerBoard) //losuje do skutku, dopóki nie trafi w puste pole (mogę później zoptymalizować losowanie, ale na razie wystarcza)
+pair AITurn(board *playerBoard, PauseMenu *pauseMenu) //losuje do skutku, dopóki nie trafi w puste pole (mogę później zoptymalizować losowanie, ale na razie wystarcza)
 {
     while (true)
     {
@@ -1200,7 +1200,7 @@ pair AITurn(board *playerBoard) //losuje do skutku, dopóki nie trafi w puste po
         pair shot = {x, y};
         if (!playerBoard->shots[x][y])
         {
-            shoot(playerBoard, shot);
+            shoot(playerBoard, shot, pauseMenu);
             return shot;
         }
     }
@@ -1364,9 +1364,9 @@ board* init_ai_ships(){
     return k;
 }
 
-void scream(){
+void scream(PauseMenu *pauseMenu){
     scr = LoadSound("Soundeffects/screaming_sinking.wav");
-    SetSoundVolume(scr, 0.5f);
+    SetSoundVolume(scr, 0.05f * pauseMenu->all_sound.val * pauseMenu->effects.val);
     loadscr = 1;
     PlaySound(scr);
 }
@@ -1484,7 +1484,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                         pair shot = {x, y};
                         if (!enemyBoard->shots[x][y]) //jeśli pole puste lub niezestrzelone, to strzelaj
                         {
-                            shoot(enemyBoard, shot);
+                            shoot(enemyBoard, shot, pauseMenu);
                             snprintf(message, sizeof(message), "Gracz strzelil w (%d, %d)", x, y);
                             if (enemyBoard->BOARD[x][y] != NULL) {
                                 ship *currShip = enemyBoard->BOARD[x][y];
@@ -1496,7 +1496,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                                     }
                                 }
                                 if (sunk) {
-                                    scream();
+                                    scream(pauseMenu);
                                     snprintf(message, sizeof(message), "Gracz zatopil statek!");
                                 }
                             } else {
@@ -1524,7 +1524,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                     }
                 }
             } else {
-                pair shot = AITurn(playerBoard);
+                pair shot = AITurn(playerBoard, pauseMenu);
                 snprintf(message, sizeof(message), "Przeciwnik strzela w (%d, %d)", (int)shot.x + 1, (int)shot.y + 1);
 
                 int shotX = (int)shot.x;
@@ -1541,7 +1541,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                             }
                         }
                         if (sunk) {
-                            scream();
+                            scream(pauseMenu);
                             //tutaj wstawimy dźwięk zatapiania
                             snprintf(message, sizeof(message), "Przeciwnik zatopil Twoj statek!");
                         }
@@ -1763,7 +1763,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                             if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
                                 pair shot = {x, y};
                                 if (!player2Board->shots[x][y]) {
-                                    shoot(player2Board, shot);
+                                    shoot(player2Board, shot, pauseMenu);
                                     snprintf(message, sizeof(message), "Gracz 1 strzelił w (%d, %d)", x, y);
                                     if (player2Board->BOARD[x][y] != NULL) {
                                         ship *currShip = player2Board->BOARD[x][y];
@@ -1775,7 +1775,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                             }
                                         }
                                         if (sunk) {
-                                            scream();
+                                            scream(pauseMenu);
                                             snprintf(message, sizeof(message), "Gracz 1 zatopił statek!");
                                         }
                                     } else {
@@ -1823,7 +1823,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                             if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
                                 pair shot = {x, y};
                                 if (!player1Board->shots[x][y]) {
-                                    shoot(player1Board, shot);
+                                    shoot(player1Board, shot, pauseMenu);
                                     snprintf(message, sizeof(message), "Gracz 2 strzelił w (%d, %d)", x, y);
                                     if (player1Board->BOARD[x][y] != NULL) {
                                         ship *currShip = player1Board->BOARD[x][y];
@@ -1835,7 +1835,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                             }
                                         }
                                         if (sunk) {
-                                            scream();
+                                            scream(pauseMenu);
                                             snprintf(message, sizeof(message), "Gracz 2 zatopił statek!");
                                         }
                                     } else {
