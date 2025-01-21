@@ -2265,9 +2265,9 @@ PauseMenu* InitPauseMenu(){
     pm->toMainMenu = false;
     pm->blur = (Color){0, 0, 0, 128};
     pm->background = LoadTexture("textures/ustawianie_bez_siatki.png");
-    pm->back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4 * 3, "textures/powrot.png", "", 40);
+    pm->back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4, "textures/powrot.png", "", 40);
     pm->volume = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 2, "textures/glosnosc.png", "", 40);
-    pm->menu = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4, "textures/menu_glowne.png", "", 40);
+    pm->menu = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4 * 3, "textures/menu_glowne.png", "", 40);
 
     pm->sound_back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 6*5, "textures/powrot.png", "", 40);
     pm->all_sound = InitSlider(SCREENHEIGHT / 6, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
@@ -2349,6 +2349,7 @@ GameState PreGame(PauseMenu *pauseMenu)
 {
     GameState gameState = GAME_START;
     pauseMenu->toMainMenu = true;
+    bool firstLoop = true;
     Music pirent = LoadMusicStream("music/Pirates-entertaiment.ogg");
     pirent.looping = true;
     PlayMusicStream(pirent);
@@ -2472,23 +2473,24 @@ GameState PreGame(PauseMenu *pauseMenu)
             DrawTextureEx(twoPlayersTexture, (Vector2){twoPlayersImageX+26, twoPlayersImageY+10}, 0.0f, twoPlayersImageScale-0.16, WHITE);
 
 
-
-            if (CheckCollisionPointRec(mousePos, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                EndDrawing();
-                StopMusicStream(pirent);
-                pauseMenu->toMainMenu = false;
-                return GAME_PREPARE1;
-            }
-            else if (CheckCollisionPointRec(mousePos, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                EndDrawing();
-                StopMusicStream(pirent);
-                pauseMenu->toMainMenu = false;
-                return GAME_PREPARE2;
-            }
-            else if (CheckCollisionPointRec(mousePos, buttonSoundSettings) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                ReloadSoundMenu(pauseMenu);
-                gameState = GAME_PAUSED;
-            }
+            if(!firstLoop){
+                if (CheckCollisionPointRec(mousePos, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    EndDrawing();
+                    StopMusicStream(pirent);
+                    pauseMenu->toMainMenu = false;
+                    return GAME_PREPARE1;
+                }
+                else if (CheckCollisionPointRec(mousePos, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    EndDrawing();
+                    StopMusicStream(pirent);
+                    pauseMenu->toMainMenu = false;
+                    return GAME_PREPARE2;
+                }
+                else if (CheckCollisionPointRec(mousePos, buttonSoundSettings) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    ReloadSoundMenu(pauseMenu);
+                    gameState = GAME_PAUSED;
+                }
+            } else firstLoop = false;
 
         } else{
             UpdatePauseMenu(pauseMenu);
