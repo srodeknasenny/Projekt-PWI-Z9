@@ -1043,34 +1043,6 @@ array_cordinals* Get_array_cordinals(int offsetX, int offsetY) {
     return cordinal;
 };
 
-void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship **enemyShip, GameState gameState, PauseMenu *pauseMenu) //basicowa funkcja resetujaca gre (pozniej trzeba wyrzucic stad playership i enemyship, zeby samo usuwalo - nikt nie bedzie tego recznie ustawial)
-{
-    //delboard(*playerBoard);
-    //delboard(*enemyBoard);
-    //delship(*playerShip);
-    //delship(*enemyShip);
-    if(gameState == GAME_PREPARE1)
-    {   *enemyBoard = init_ai_ships();
-        GameData* gameData = GameSet(GAME_START, pauseMenu);
-        *playerBoard = gameData->playerBoard;
-    }
-    else if(gameState == GAME_PREPARE2)
-    {
-        GameData* gameData1 = GameSet(GAME_PREPARE1, pauseMenu);
-        GameData* gameData2 = GameSet(GAME_PREPARE2, pauseMenu);
-        *playerBoard = gameData1->playerBoard;
-        *enemyBoard = gameData2->playerBoard;
-    }
-	/*reczne dodawanie statkow, pozniej tego nie bedzie, bo zacznie sie funkcja z ustawianiem przez uzytkownika*/
-    *playerShip = NULL;
-    *enemyShip = NULL;
-/*
-    pair playerStart = {2, 2};
-    pair enemyStart = {4, 4};
-
-    placeStatek(*playerBoard, *playerShip, playerStart, 2);
-    placeStatek(*enemyBoard, *enemyShip, enemyStart, 3);*/
-};
 
 void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) //funkcja rysujaca plansze
 {
@@ -1191,11 +1163,11 @@ void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) //fun
     }
 };
 
+static int lastHitX = -1;
+static int lastHitY = -1;
+static int direction = 0;                             // 0: up, 1: right, 2: down, 3: left
 pair AITurn(board *playerBoard, PauseMenu *pauseMenu) // losuje do skutku, dopóki nie trafi w puste pole (mogę później zoptymalizować losowanie, ale na razie wystarcza)
 {
-    static int lastHitX = -1;
-    static int lastHitY = -1;
-    static int direction = 0; // 0: up, 1: right, 2: down, 3: left
 
     while (true)
     {
@@ -1350,6 +1322,39 @@ pair AITurn(board *playerBoard, PauseMenu *pauseMenu) // losuje do skutku, dopó
             }
         }
     }
+}
+
+void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship **enemyShip, GameState gameState, PauseMenu *pauseMenu) //basicowa funkcja resetujaca gre (pozniej trzeba wyrzucic stad playership i enemyship, zeby samo usuwalo - nikt nie bedzie tego recznie ustawial)
+{
+    
+    lastHitX = -1;
+    lastHitY = -1;
+    direction = 0;
+    //delboard(*playerBoard);
+    //delboard(*enemyBoard);
+    //delship(*playerShip);
+    //delship(*enemyShip);
+    if(gameState == GAME_PREPARE1)
+    {   *enemyBoard = init_ai_ships();
+        GameData* gameData = GameSet(GAME_START, pauseMenu);
+        *playerBoard = gameData->playerBoard;
+    }
+    else if(gameState == GAME_PREPARE2)
+    {
+        GameData* gameData1 = GameSet(GAME_PREPARE1, pauseMenu);
+        GameData* gameData2 = GameSet(GAME_PREPARE2, pauseMenu);
+        *playerBoard = gameData1->playerBoard;
+        *enemyBoard = gameData2->playerBoard;
+    }
+	/*reczne dodawanie statkow, pozniej tego nie bedzie, bo zacznie sie funkcja z ustawianiem przez uzytkownika*/
+    *playerShip = NULL;
+    *enemyShip = NULL;
+/*
+    pair playerStart = {2, 2};
+    pair enemyStart = {4, 4};
+
+    placeStatek(*playerBoard, *playerShip, playerStart, 2);
+    placeStatek(*enemyBoard, *enemyShip, enemyStart, 3);*/
 }
 
 bool CheckWinCondition(board *playerBoard) //czy wszystkie statki zostały zestrzelone
