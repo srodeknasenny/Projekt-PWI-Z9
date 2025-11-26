@@ -371,6 +371,8 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
     Music calm = LoadMusicStream("music/The_calm_before_the_storm.ogg");
     calm.looping = true;
 
+    bool czy_random=false;
+
     SetExitKey(0);
     PlayMusicStream(calm);
     while (1)
@@ -497,7 +499,9 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
 
                 if (CheckCollisionPointRec(GetMousePosition(), RandomShipGenButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
                 {
+                    czy_random=true;
                     playerBoard = init_ai_ships();
+
                     printboard(playerBoard);
                     for (int alpha = 0; alpha <= 255; alpha += 5)
                     {
@@ -677,17 +681,20 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
     }
 
     // Układanie statków na w zmiennej playerBoard
-    for (int i = 0; i < MAX_SHIPS; i++)
+    if(!czy_random)
     {
-        int gridX = (playerShips[i].pos.x - gridStartX) / TILE_SIZE;
-        int gridY = (playerShips[i].pos.y - gridStartY) / TILE_SIZE;
-
-        if (gridX >= 0 && gridY >= 0)
+        for (int i = 0; i < MAX_SHIPS; i++)
         {
-            int dl = playerShips[i].length;
-            ship *playerS = initship(dl);
-            playerS->kierunek = playerShips[i].kierunek;;
-            placeStatek(playerBoard, playerS, (pair){gridX, gridY}, playerShips[i].kierunek);
+            int gridX = (playerShips[i].pos.x - gridStartX) / TILE_SIZE;
+            int gridY = (playerShips[i].pos.y - gridStartY) / TILE_SIZE;
+
+            if (gridX >= 0 && gridY >= 0)
+            {
+                int dl = playerShips[i].length;
+                ship *playerS = initship(dl);
+                playerS->kierunek = playerShips[i].kierunek;
+                placeStatek(playerBoard, playerS, (pair){gridX, gridY}, playerShips[i].kierunek);
+            }
         }
     }
 	printf("Contents of playerBoard:\n");
@@ -895,7 +902,7 @@ void placeStatek(board *boardtab, ship *curr_ship, pair begin, int direction) //
 	}
 }
 
-void beingshot(ship* curr_ship,pair paira)
+void beingshot(ship* curr_ship,pair paira, PauseMenu *pauseMenu)
 {
     //Sound scream = LoadSound("Soundeffects/screaming_sinking.wav");
 	for (int i = 0; i < curr_ship->type; i++)
@@ -910,13 +917,13 @@ void beingshot(ship* curr_ship,pair paira)
 	}
     //UnloadSound(scream);
     shoted = LoadSound("Soundeffects/shoted.wav");
-    SetSoundVolume(shoted, 0.5f);//trzeba by było zmodyfikować suwak, pod zmianę dynamiki dźwięku
+    SetSoundVolume(shoted, 0.05f * pauseMenu->all_sound.val * pauseMenu->effects.val);//trzeba by było zmodyfikować suwak, pod zmianę dynamiki dźwięku
     loadshot = 1;
     PlaySound(shoted);
     //UnloadSound(shoted);
 }
 
-void shoot(board *playerBoard, pair shot)
+void shoot(board *playerBoard, pair shot, PauseMenu *pauseMenu)
 {
     int x = shot.x;
     int y = shot.y;
@@ -924,11 +931,11 @@ void shoot(board *playerBoard, pair shot)
     if (playerBoard->BOARD[x][y] != NULL)
 	{
         ship *curr_ship = playerBoard->BOARD[x][y];
-		beingshot(curr_ship,shot);
+		beingshot(curr_ship,shot, pauseMenu);
         return;
     }
     blind = LoadSound("Soundeffects/blind.wav");
-    SetSoundVolume(blind, 0.5f);
+    SetSoundVolume(blind, 0.05f * pauseMenu->all_sound.val * pauseMenu->effects.val);
     loadblind = 1;
     //SetSoundVolume(blind, 1.0f);
     PlaySound(blind);
@@ -1043,34 +1050,6 @@ array_cordinals* Get_array_cordinals(int offsetX, int offsetY) {
     return cordinal;
 };
 
-void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship **enemyShip, GameState gameState, PauseMenu *pauseMenu) //basicowa funkcja resetujaca gre (pozniej trzeba wyrzucic stad playership i enemyship, zeby samo usuwalo - nikt nie bedzie tego recznie ustawial)
-{
-    //delboard(*playerBoard);
-    //delboard(*enemyBoard);
-    //delship(*playerShip);
-    //delship(*enemyShip);
-    if(gameState == GAME_PREPARE1)
-    {   *enemyBoard = init_ai_ships();
-        GameData* gameData = GameSet(GAME_START, pauseMenu);
-        *playerBoard = gameData->playerBoard;
-    }
-    else if(gameState == GAME_PREPARE2)
-    {
-        GameData* gameData1 = GameSet(GAME_PREPARE1, pauseMenu);
-        GameData* gameData2 = GameSet(GAME_PREPARE2, pauseMenu);
-        *playerBoard = gameData1->playerBoard;
-        *enemyBoard = gameData2->playerBoard;
-    }
-	/*reczne dodawanie statkow, pozniej tego nie bedzie, bo zacznie sie funkcja z ustawianiem przez uzytkownika*/
-    *playerShip = NULL;
-    *enemyShip = NULL;
-/*
-    pair playerStart = {2, 2};
-    pair enemyStart = {4, 4};
-
-    placeStatek(*playerBoard, *playerShip, playerStart, 2);
-    placeStatek(*enemyBoard, *enemyShip, enemyStart, 3);*/
-};
 
 void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) //funkcja rysujaca plansze
 {
@@ -1191,20 +1170,199 @@ void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) //fun
     }
 };
 
-pair AITurn(board *playerBoard) //losuje do skutku, dopóki nie trafi w puste pole (mogę później zoptymalizować losowanie, ale na razie wystarcza)
+static int lastHitX = -1;
+static int lastHitY = -1;
+static int direction = 0;                             // 0: up, 1: right, 2: down, 3: left
+pair AITurn(board *playerBoard, PauseMenu *pauseMenu) // losuje do skutku, dopóki nie trafi w puste pole (mogę później zoptymalizować losowanie, ale na razie wystarcza)
 {
+
     while (true)
     {
-        int x = GetRandomValue(0, BOARD_SIZE - 1);
-        int y = GetRandomValue(0, BOARD_SIZE - 1);
-        pair shot = {x, y};
-        if (!playerBoard->shots[x][y])
+        int x, y;
+
+        TraceLog(LOG_INFO, "Last hit: (%d, %d)", lastHitX, lastHitY);
+
+        if (lastHitX >= 0 && lastHitX < BOARD_SIZE && lastHitY >= 0 && lastHitY < BOARD_SIZE) // Check if the last hit destroyed a ship
         {
-            shoot(playerBoard, shot);
-            return shot;
+            ship *lastShip = playerBoard->BOARD[lastHitX][lastHitY];
+            if (lastShip != NULL)
+            {
+                TraceLog(LOG_INFO, "Last ship type: %d", lastShip->type);
+                bool destroyed = true;
+                for (int i = 0; i < lastShip->type; i++)
+                {
+                    TraceLog(LOG_INFO, "(%d, %d)", (int)lastShip->boardplace[i].cords.x, (int)lastShip->boardplace[i].cords.y);
+                    if (lastShip->boardplace[i].got_shot == 0)
+                    {
+                        destroyed = false;
+                        break;
+                    }
+                }
+
+                if (destroyed)
+                {
+                    TraceLog(LOG_INFO, "Ship was destroyed");
+                    lastHitX = -1;
+                    lastHitY = -1;
+                    direction = 0;
+                }
+            }
+        }
+
+        if (lastHitX != -1 && lastHitY != -1)
+        {
+            TraceLog(LOG_INFO, "Ship was not destroyed");
+            // Try to continue in the same direction
+            switch (direction)
+            {
+            case 0:
+                x = lastHitX;
+                y = lastHitY - 1;
+                break;
+            case 1:
+                x = lastHitX + 1;
+                y = lastHitY;
+                break;
+            case 2:
+                x = lastHitX;
+                y = lastHitY + 1;
+                break;
+            case 3:
+                x = lastHitX - 1;
+                y = lastHitY;
+                break;
+            }
+
+            // Check if the coordinates are within bounds and not already shot
+            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && !playerBoard->shots[x][y]) // Check if the shot is within bounds and the cell has not been shot yet
+            {
+                shoot(playerBoard, (pair){x, y}, pauseMenu);
+                if (playerBoard->BOARD[x][y] != NULL) // Check if the shot hit a ship
+                {
+                    lastHitX = x;
+                    lastHitY = y;
+                }
+                else
+                {
+                    direction = (direction + 1) % 4; // Change direction
+                }
+                return (pair){x, y};
+            }
+            else if(x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && playerBoard->shots[x][y] && playerBoard->BOARD[x][y] != NULL) // Check if the shot is within bounds and the cell has been shot, but the cell has a ship
+            {
+                switch (direction)
+                {
+                case 0:
+                    lastHitX = lastHitX;
+                    lastHitY = lastHitY - 1;
+                    break;
+                case 1:
+                    lastHitX = lastHitX + 1;
+                    lastHitY = lastHitY;
+                    break;
+                case 2:
+                    lastHitX = lastHitX;
+                    lastHitY = lastHitY + 1;
+                    break;
+                case 3:
+                    lastHitX = lastHitX - 1;
+                    lastHitY = lastHitY;
+                    break;
+                }
+            }
+            else
+            {
+                direction = (direction + 1) % 4; // Change direction
+            }
+        }
+        else
+        {
+            // Random guess
+            x = GetRandomValue(0, BOARD_SIZE - 1);
+            y = GetRandomValue(0, BOARD_SIZE - 1);
+
+            bool adjacentToSunkenShip = false;
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    int adjX = x + dx;
+                    int adjY = y + dy;
+                    if (adjX >= 0 && adjX < BOARD_SIZE && adjY >= 0 && adjY < BOARD_SIZE)
+                    {
+                        if (playerBoard->BOARD[adjX][adjY] != NULL)
+                        {
+                            ship *adjShip = playerBoard->BOARD[adjX][adjY];
+                            bool isSunken = true;
+                            for (int i = 0; i < adjShip->type; i++)
+                            {
+                                if (!adjShip->boardplace[i].got_shot)
+                                {
+                                    isSunken = false;
+                                    break;
+                                }
+                            }
+                            if (isSunken)
+                            {
+                                adjacentToSunkenShip = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (adjacentToSunkenShip)
+                    break;
+            }
+            if (adjacentToSunkenShip)
+                continue;
+
+            if (!playerBoard->shots[x][y])
+            {
+                shoot(playerBoard, (pair){x, y}, pauseMenu);
+                if (playerBoard->BOARD[x][y] != NULL)
+                {
+                    lastHitX = x;
+                    lastHitY = y;
+                    direction = 0; // Reset direction
+                }
+                return (pair){x, y};
+            }
         }
     }
-};
+}
+
+void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship **enemyShip, GameState gameState, PauseMenu *pauseMenu) //basicowa funkcja resetujaca gre (pozniej trzeba wyrzucic stad playership i enemyship, zeby samo usuwalo - nikt nie bedzie tego recznie ustawial)
+{
+    
+    lastHitX = -1;
+    lastHitY = -1;
+    direction = 0;
+    //delboard(*playerBoard);
+    //delboard(*enemyBoard);
+    //delship(*playerShip);
+    //delship(*enemyShip);
+    if(gameState == GAME_PREPARE1)
+    {   *enemyBoard = init_ai_ships();
+        GameData* gameData = GameSet(GAME_START, pauseMenu);
+        *playerBoard = gameData->playerBoard;
+    }
+    else if(gameState == GAME_PREPARE2)
+    {
+        GameData* gameData1 = GameSet(GAME_PREPARE1, pauseMenu);
+        GameData* gameData2 = GameSet(GAME_PREPARE2, pauseMenu);
+        *playerBoard = gameData1->playerBoard;
+        *enemyBoard = gameData2->playerBoard;
+    }
+	/*reczne dodawanie statkow, pozniej tego nie bedzie, bo zacznie sie funkcja z ustawianiem przez uzytkownika*/
+    *playerShip = NULL;
+    *enemyShip = NULL;
+/*
+    pair playerStart = {2, 2};
+    pair enemyStart = {4, 4};
+
+    placeStatek(*playerBoard, *playerShip, playerStart, 2);
+    placeStatek(*enemyBoard, *enemyShip, enemyStart, 3);*/
+}
 
 bool CheckWinCondition(board *playerBoard) //czy wszystkie statki zostały zestrzelone
 {
@@ -1364,9 +1522,9 @@ board* init_ai_ships(){
     return k;
 }
 
-void scream(){
+void scream(PauseMenu *pauseMenu){
     scr = LoadSound("Soundeffects/screaming_sinking.wav");
-    SetSoundVolume(scr, 0.5f);
+    SetSoundVolume(scr, 0.05f * pauseMenu->all_sound.val * pauseMenu->effects.val);
     loadscr = 1;
     PlaySound(scr);
 }
@@ -1484,7 +1642,8 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                         pair shot = {x, y};
                         if (!enemyBoard->shots[x][y]) //jeśli pole puste lub niezestrzelone, to strzelaj
                         {
-                            shoot(enemyBoard, shot);
+
+                            shoot(enemyBoard, shot, pauseMenu);
                             snprintf(message, sizeof(message), "Gracz strzelil w (%d, %d)", x, y);
                             if (enemyBoard->BOARD[x][y] != NULL) {
                                 ship *currShip = enemyBoard->BOARD[x][y];
@@ -1496,7 +1655,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                                     }
                                 }
                                 if (sunk) {
-                                    scream();
+                                    scream(pauseMenu);
                                     snprintf(message, sizeof(message), "Gracz zatopil statek!");
                                 }
                             } else {
@@ -1524,7 +1683,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                     }
                 }
             } else {
-                pair shot = AITurn(playerBoard);
+                pair shot = AITurn(playerBoard, pauseMenu);
                 snprintf(message, sizeof(message), "Przeciwnik strzela w (%d, %d)", (int)shot.x + 1, (int)shot.y + 1);
 
                 int shotX = (int)shot.x;
@@ -1541,7 +1700,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                             }
                         }
                         if (sunk) {
-                            scream();
+                            scream(pauseMenu);
                             //tutaj wstawimy dźwięk zatapiania
                             snprintf(message, sizeof(message), "Przeciwnik zatopil Twoj statek!");
                         }
@@ -1626,7 +1785,6 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                     message[0] = '\0';
                 } else if (CheckCollisionPointRec(mousePos, closeButton)) {
                     FreeSounds();
-                    CloseWindow();
                     break;
                 }
             }
@@ -1763,8 +1921,8 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                             if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
                                 pair shot = {x, y};
                                 if (!player2Board->shots[x][y]) {
-                                    shoot(player2Board, shot);
-                                    snprintf(message, sizeof(message), "Gracz 1 strzelił w (%d, %d)", x, y);
+                                    shoot(player2Board, shot, pauseMenu);
+                                    snprintf(message, sizeof(message), "Gracz 1 strzelil w (%d, %d)", x, y);
                                     if (player2Board->BOARD[x][y] != NULL) {
                                         ship *currShip = player2Board->BOARD[x][y];
                                         bool sunk = true;
@@ -1775,8 +1933,8 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                             }
                                         }
                                         if (sunk) {
-                                            scream();
-                                            snprintf(message, sizeof(message), "Gracz 1 zatopił statek!");
+                                            scream(pauseMenu);
+                                            snprintf(message, sizeof(message), "Gracz 1 zatopil statek!");
                                         }
                                     } else {
                                         turnEnded = true;
@@ -1799,7 +1957,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                     }
 
                                 } else {
-                                    snprintf(message, sizeof(message), "Strzelałeś już tutaj!");
+                                    snprintf(message, sizeof(message), "Strzelales juz tutaj!");
                                 }
                             }
                         }
@@ -1823,8 +1981,8 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                             if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
                                 pair shot = {x, y};
                                 if (!player1Board->shots[x][y]) {
-                                    shoot(player1Board, shot);
-                                    snprintf(message, sizeof(message), "Gracz 2 strzelił w (%d, %d)", x, y);
+                                    shoot(player1Board, shot, pauseMenu);
+                                    snprintf(message, sizeof(message), "Gracz 2 strzelil w (%d, %d)", x, y);
                                     if (player1Board->BOARD[x][y] != NULL) {
                                         ship *currShip = player1Board->BOARD[x][y];
                                         bool sunk = true;
@@ -1835,8 +1993,8 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                             }
                                         }
                                         if (sunk) {
-                                            scream();
-                                            snprintf(message, sizeof(message), "Gracz 2 zatopił statek!");
+                                            scream(pauseMenu);
+                                            snprintf(message, sizeof(message), "Gracz 2 zatopil statek!");
                                         }
                                     } else {
                                         turnEnded = true;
@@ -1859,7 +2017,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                     }
 
                                 } else {
-                                    snprintf(message, sizeof(message), "Strzelałeś już tutaj!");
+                                    snprintf(message, sizeof(message), "Strzelaleś już tutaj!");
                                 }
                             }
                         }
@@ -1926,7 +2084,6 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                     message[0] = '\0';
                 } else if (CheckCollisionPointRec(mousePos, closeButton)) {
                     FreeSounds();
-                    CloseWindow();
                     break;
                 }
             }
@@ -2109,11 +2266,11 @@ PauseMenu* InitPauseMenu(){
     pm->toMainMenu = false;
     pm->blur = (Color){0, 0, 0, 128};
     pm->background = LoadTexture("textures/ustawianie_bez_siatki.png");
-    pm->back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4 * 3, "textures/3x1.png", "Powrót", 40);
-    pm->volume = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 2, "textures/3x1.png", "Glosnosc", 40);
-    pm->menu = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4, "textures/3x1.png", "Menu Glowne", 40);
+    pm->back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4, "textures/powrot.png", "", 40);
+    pm->volume = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 2, "textures/glosnosc.png", "", 40);
+    pm->menu = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4 * 3, "textures/menu_glowne.png", "", 40);
 
-    pm->sound_back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 6*5, "textures/3x1.png", "Powrót", 40);
+    pm->sound_back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 6*5, "textures/powrot.png", "", 40);
     pm->all_sound = InitSlider(SCREENHEIGHT / 6, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
     pm->music = InitSlider(SCREENHEIGHT / 3 + 40, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
     pm->effects = InitSlider(SCREENHEIGHT / 2 + 80, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
@@ -2193,6 +2350,7 @@ GameState PreGame(PauseMenu *pauseMenu)
 {
     GameState gameState = GAME_START;
     pauseMenu->toMainMenu = true;
+    bool firstLoop = true;
     Music pirent = LoadMusicStream("music/Pirates-entertaiment.ogg");
     pirent.looping = true;
     PlayMusicStream(pirent);
@@ -2316,23 +2474,24 @@ GameState PreGame(PauseMenu *pauseMenu)
             DrawTextureEx(twoPlayersTexture, (Vector2){twoPlayersImageX+26, twoPlayersImageY+10}, 0.0f, twoPlayersImageScale-0.16, WHITE);
 
 
-
-            if (CheckCollisionPointRec(mousePos, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                EndDrawing();
-                StopMusicStream(pirent);
-                pauseMenu->toMainMenu = false;
-                return GAME_PREPARE1;
-            }
-            else if (CheckCollisionPointRec(mousePos, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                EndDrawing();
-                StopMusicStream(pirent);
-                pauseMenu->toMainMenu = false;
-                return GAME_PREPARE2;
-            }
-            else if (CheckCollisionPointRec(mousePos, buttonSoundSettings) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                ReloadSoundMenu(pauseMenu);
-                gameState = GAME_PAUSED;
-            }
+            if(!firstLoop){
+                if (CheckCollisionPointRec(mousePos, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    EndDrawing();
+                    StopMusicStream(pirent);
+                    pauseMenu->toMainMenu = false;
+                    return GAME_PREPARE1;
+                }
+                else if (CheckCollisionPointRec(mousePos, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    EndDrawing();
+                    StopMusicStream(pirent);
+                    pauseMenu->toMainMenu = false;
+                    return GAME_PREPARE2;
+                }
+                else if (CheckCollisionPointRec(mousePos, buttonSoundSettings) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    ReloadSoundMenu(pauseMenu);
+                    gameState = GAME_PAUSED;
+                }
+            } else firstLoop = false;
 
         } else{
             UpdatePauseMenu(pauseMenu);
