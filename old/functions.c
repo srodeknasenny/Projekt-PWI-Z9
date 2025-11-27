@@ -1642,7 +1642,11 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                         pair shot = {x, y};
                         if (!enemyBoard->shots[x][y]) //jeśli pole puste lub niezestrzelone, to strzelaj
                         {
+<<<<<<< HEAD
                             shoot(enemyBoard, shot, pauseMenu);
+=======
+                            shoot(enemyBoard, shot);
+>>>>>>> 909cdbf (Dodalam tekstury tla i uzupelnilam menu pauzy)
                             snprintf(message, sizeof(message), "Gracz strzelil w (%d, %d)", x, y);
                             if (enemyBoard->BOARD[x][y] != NULL) {
                                 ship *currShip = enemyBoard->BOARD[x][y];
@@ -1654,7 +1658,11 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                                     }
                                 }
                                 if (sunk) {
+<<<<<<< HEAD
                                     scream(pauseMenu);
+=======
+                                    scream();
+>>>>>>> 909cdbf (Dodalam tekstury tla i uzupelnilam menu pauzy)
                                     snprintf(message, sizeof(message), "Gracz zatopil statek!");
                                 }
                             } else {
